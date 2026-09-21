@@ -31,6 +31,7 @@ type Supervisor struct {
 	session     string
 	approvals   *approval.Daemon // always non-nil: IPC resolution needs it
 	egressProxy *egress.Proxy    // nil when egress section disabled
+	Verbose     bool             // extra status output (sandbox notes etc.)
 }
 
 // New builds the supervisor: compiles the policy, opens the audit store,
@@ -163,7 +164,10 @@ func (s *Supervisor) Run(ctx context.Context, argv []string) (int, error) {
 		fmt.Fprintln(os.Stderr, "agentvault: shim install warning:", err)
 	}
 
-	// 4. Spawn child with instrumented environment.
+	// 4. Kernel sandbox (v0.2): same YAML → Seatbelt profile (macOS).
+	argv = s.maybeSandbox(argv, proxyURL, s.Verbose)
+
+	// 5. Spawn child with instrumented environment.
 	child, err := spawnChild(argv, childEnv{
 		ShimDir:   shim.Dir(),
 		SessionID: s.session,

@@ -54,6 +54,7 @@ type Policy struct {
 	Approvals  ApprovalsCfg   `yaml:"approvals"`
 	MCPServers []MCPServerCfg `yaml:"mcp_servers"`
 	Shims      ShimsCfg       `yaml:"shims"`
+	Sandbox    SandboxCfg     `yaml:"sandbox"`
 	Egress     EgressCfg      `yaml:"egress"`
 	Audit      AuditCfg       `yaml:"audit"`
 }
@@ -131,6 +132,13 @@ type ToolPolicy struct {
 
 type ShimsCfg struct {
 	Binaries []string `yaml:"binaries"`
+}
+
+// SandboxCfg controls kernel-level confinement (v0.2: macOS Seatbelt).
+type SandboxCfg struct {
+	Enabled         bool     `yaml:"enabled"`
+	ExtraWritePaths []string `yaml:"extra_write_paths,omitempty"` // additional writable dirs
+	RestrictNetwork *bool    `yaml:"restrict_network,omitempty"`  // default: true when egress proxy on
 }
 
 type EgressCfg struct {

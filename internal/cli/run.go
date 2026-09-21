@@ -26,6 +26,7 @@ and recorded in the tamper-evident audit log.`,
 			if err != nil {
 				return err
 			}
+			sup.Verbose = flagVerbose
 			defer func() { _ = sup.Close() }()
 			code, err := sup.Run(cmd.Context(), args)
 			if err != nil {

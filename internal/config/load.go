@@ -54,6 +54,9 @@ func (p *Policy) expand() {
 			p.Rules[i].Match.Path[j] = tilde(p.Rules[i].Match.Path[j])
 		}
 	}
+	for j := range p.Sandbox.ExtraWritePaths {
+		p.Sandbox.ExtraWritePaths[j] = tilde(p.Sandbox.ExtraWritePaths[j])
+	}
 	p.Audit.Path = tilde(p.Audit.Path)
 }
 

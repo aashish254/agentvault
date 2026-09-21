@@ -70,6 +70,7 @@ func DefaultPolicy() *Policy {
 		Shims: ShimsCfg{
 			Binaries: []string{"rm", "curl", "wget", "ssh", "scp", "git", "npm", "npx", "pip", "brew", "dd"},
 		},
+		Sandbox: SandboxCfg{Enabled: true}, // v0.2: kernel confinement on by default (degrades loudly, never silently)
 		Egress: EgressCfg{
 			Listen:  "127.0.0.1:0",
 			Default: EffectDeny,

@@ -8,7 +8,7 @@ agentvault run -- opencode
 
 ![demo](docs/img/demo.gif)
 
-> ⚠️ **Honest scope.** v0.1 is guardrails + tamper-evident audit, not a kernel sandbox. A determined agent can bypass PATH shims (absolute paths) and proxy env vars. Kernel confinement (macOS Seatbelt / Linux Landlock) generated from the same YAML is the v0.2 roadmap. Details: [SECURITY.md](SECURITY.md).
+> ⚠️ **Scope, honestly.** On macOS the agent runs under a **kernel sandbox** (Seatbelt) generated from your policy — direct `/bin/rm` calls and raw sockets are blocked at the syscall layer. On Linux/Windows today: shims + proxies + tamper-evident audit (kernel backends are the v0.3 roadmap). Details: [SECURITY.md](SECURITY.md).
 
 ## Why
 
