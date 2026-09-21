@@ -53,6 +53,17 @@ func (l *listener) close() {
 	_ = os.Remove(l.path)
 }
 
+// socketDir returns the dir holding session sockets (for sandbox allow).
+// Canonicalized: /tmp is a symlink to /private/tmp on macOS, and
+// Seatbelt matches canonical paths only (EPERM otherwise).
+func (l *listener) socketDir() string {
+	dir := filepath.Dir(l.path)
+	if r, err := filepath.EvalSymlinks(dir); err == nil {
+		return r
+	}
+	return dir
+}
+
 // serve accepts shim connections until the listener closes.
 // Each connection handles one request/response and dies.
 func (l *listener) serve(s *Supervisor) {

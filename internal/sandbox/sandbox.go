@@ -20,6 +20,7 @@ type Context struct {
 	Home      string
 	ProxyAddr string // "127.0.0.1:port" when the egress proxy is up
 	HasEgress bool
+	SockDir   string // shim IPC socket dir (unix only; "" on windows)
 }
 
 // Result of profile generation.
@@ -92,6 +93,12 @@ func Generate(pol *config.Policy, ctx Context) Profile {
 		b.WriteString("(deny network-outbound)\n")
 		// DNS resolves through mDNSResponder (mach), unaffected by this.
 		b.WriteString("(allow network-outbound (remote tcp \"localhost:*\"))\n")
+		// Seatbelt's network-outbound also governs UNIX-domain sockets,
+		// so the shim IPC channel must be explicitly allowed — otherwise
+		// every shim fails closed with EPERM (caught in live testing).
+		if ctx.SockDir != "" {
+			fmt.Fprintf(&b, "(allow network-outbound (local unix (subpath \"%s\")))\n", ctx.SockDir)
+		}
 		if ctx.ProxyAddr != "" {
 			// Seatbelt accepts only "localhost" or "*" as host here —
 			// NOT 127.0.0.1 (caught by real smoke test: profile rejected).

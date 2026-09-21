@@ -62,6 +62,10 @@ func (l *listener) close() {
 	}
 }
 
+// socketDir: no unix sockets on Windows — IPC is TCP, covered by the
+// loopback allowance. Empty string = no unix rule needed.
+func (l *listener) socketDir() string { return "" }
+
 func (l *listener) serve(s *Supervisor) {
 	for {
 		conn, err := l.ln.Accept()

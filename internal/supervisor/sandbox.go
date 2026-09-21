@@ -25,6 +25,9 @@ func (s *Supervisor) maybeSandbox(argv []string, proxyURL string, verbose bool) 
 	cwd, _ := os.Getwd()
 	home, _ := os.UserHomeDir()
 	ctx := sandbox.Context{Cwd: cwd, Home: home, HasEgress: proxyURL != ""}
+	if s.listener != nil {
+		ctx.SockDir = s.listener.socketDir()
+	}
 	if ctx.HasEgress {
 		ctx.ProxyAddr = strings.TrimPrefix(proxyURL, "http://")
 	}
