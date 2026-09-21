@@ -1,7 +1,6 @@
 package policy
 
 import (
-	"encoding/json"
 	"fmt"
 
 	"cel.dev/cel-go/cel"
@@ -74,17 +73,4 @@ func celEventMap(e event.Event) map[string]any {
 		"pid":     e.PID,
 		"ts_unix": e.Timestamp.Unix(),
 	}
-}
-
-// toolArgsString is a debugging helper for `policy test` output.
-func toolArgsString(e event.Event) string {
-	if len(e.ToolArgs) == 0 {
-		return ""
-	}
-	var v any
-	if err := json.Unmarshal(e.ToolArgs, &v); err != nil {
-		return string(e.ToolArgs)
-	}
-	b, _ := json.Marshal(v)
-	return string(b)
 }

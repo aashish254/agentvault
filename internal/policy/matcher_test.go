@@ -3,6 +3,7 @@ package policy
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/aashish/agentvault/internal/config"
@@ -58,6 +59,28 @@ func TestPathGlobEdgeCases(t *testing.T) {
 	}
 	if matchPath([]string{"/work/**"}, "/other/x.go", "/work") {
 		t.Fatal("must not match outside the tree")
+	}
+}
+
+func TestResolvePatternNeverWidensRelativeGlobs(t *testing.T) {
+	// Regression: "./**" must never resolve to "**" (which matches everything).
+	if got := resolvePattern("./**"); got != "./**" {
+		t.Fatalf("resolvePattern(./**) = %q — must stay literal", got)
+	}
+	if got := resolvePattern("src/**/*.go"); got != "src/**/*.go" {
+		t.Fatalf("relative pattern rewritten: %q", got)
+	}
+	// Absolute existing prefix gets symlink-resolved but stays equivalent.
+	home, err := os.UserHomeDir()
+	if err != nil {
+		t.Skip("no home dir")
+	}
+	got := resolvePattern(filepath.Join(home, ".ssh", "**"))
+	if !strings.HasSuffix(got, filepath.Join(".ssh", "**")) {
+		t.Fatalf("suffix lost: %q", got)
+	}
+	if !filepath.IsAbs(got) {
+		t.Fatalf("resolved pattern must stay absolute: %q", got)
 	}
 }
 

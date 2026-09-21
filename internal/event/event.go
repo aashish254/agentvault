@@ -33,32 +33,32 @@ const (
 // Event is the single canonical payload every channel must build.
 // Zero-valued optional fields are omitted from CanonicalJSON.
 type Event struct {
-	ID        string            `json:"id"` // ULID, generated at interception
-	SessionID string            `json:"session_id"`
-	Timestamp time.Time         `json:"ts"` // UTC, RFC3339Nano in JSON
-	Source    Source            `json:"source"`
-	Action    ActionType        `json:"action"`
+	ID        string     `json:"id" yaml:"id"` // ULID, generated at interception
+	SessionID string     `json:"session_id" yaml:"session_id"`
+	Timestamp time.Time  `json:"ts" yaml:"ts"` // UTC, RFC3339Nano in JSON
+	Source    Source     `json:"source" yaml:"source"`
+	Action    ActionType `json:"action" yaml:"action"`
 
 	// shell.exec
-	Cmd  string   `json:"cmd,omitempty"` // basename: "rm"
-	Argv []string `json:"argv,omitempty"`
-	Raw  string   `json:"raw,omitempty"` // full joined command line
+	Cmd  string   `json:"cmd,omitempty" yaml:"cmd,omitempty"` // basename: "rm"
+	Argv []string `json:"argv,omitempty" yaml:"argv,omitempty"`
+	Raw  string   `json:"raw,omitempty" yaml:"raw,omitempty"` // full joined command line
 
 	// fs.* and MCP filesystem tools
-	Path string `json:"path,omitempty"` // absolute, ~ expanded, symlink-resolved
+	Path string `json:"path,omitempty" yaml:"path,omitempty"` // absolute, ~ expanded, symlink-resolved
 
 	// net.egress
-	Host string `json:"host,omitempty"`
-	Port int    `json:"port,omitempty"`
+	Host string `json:"host,omitempty" yaml:"host,omitempty"`
+	Port int    `json:"port,omitempty" yaml:"port,omitempty"`
 
 	// mcp.tool
-	Server   string          `json:"server,omitempty"`
-	Tool     string          `json:"tool,omitempty"`
-	ToolArgs json.RawMessage `json:"tool_args,omitempty"`
+	Server   string          `json:"server,omitempty" yaml:"server,omitempty"`
+	Tool     string          `json:"tool,omitempty" yaml:"tool,omitempty"`
+	ToolArgs json.RawMessage `json:"tool_args,omitempty" yaml:"tool_args,omitempty"`
 
-	Cwd string            `json:"cwd"`
-	Env map[string]string `json:"-"` // NEVER serialized or logged (secret leakage)
-	PID int               `json:"pid"`
+	Cwd string            `json:"cwd" yaml:"cwd"`
+	Env map[string]string `json:"-" yaml:"-"` // NEVER serialized or logged (secret leakage)
+	PID int               `json:"pid" yaml:"pid"`
 }
 
 // NewID returns a fresh ULID string.

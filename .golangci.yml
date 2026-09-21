@@ -1,0 +1,17 @@
+version: "2"
+
+linters:
+  enable:
+    - gosec
+  settings:
+    errcheck:
+      # CLI output to cobra writers: failure mode is a broken pipe,
+      # not a security issue. Everything else must check errors.
+      exclude-functions:
+        - fmt.Fprintf
+        - fmt.Fprintln
+        - fmt.Fprint
+
+formatters:
+  enable:
+    - goimports

@@ -1,0 +1,158 @@
+# Fixture corpus: 30 cases run against agentvault.example.yaml by
+# corpus_test.go. Add a case here = add a test. Keep names stable;
+# CI failure messages reference them.
+policy: ../../../agentvault.example.yaml
+
+cases:
+  # --- destructive shell (deny, block-destructive-shell) ---
+  - name: "001 rm -rf /"
+    event: {source: shim, action: shell.exec, cmd: rm, argv: [rm, -rf, /], raw: "rm -rf /", cwd: /work}
+    want: deny
+    rule: block-destructive-shell
+  - name: "002 rm -rf node_modules"
+    event: {source: shim, action: shell.exec, cmd: rm, argv: [rm, -rf, node_modules], raw: "rm -rf node_modules", cwd: /work}
+    want: deny
+    rule: block-destructive-shell
+  - name: "003 rm single file"
+    event: {source: shim, action: shell.exec, cmd: rm, argv: [rm, "file.txt"], raw: "rm file.txt", cwd: /work}
+    want: deny
+    rule: block-destructive-shell
+  - name: "004 dd to disk"
+    event: {source: shim, action: shell.exec, cmd: dd, argv: [dd, "if=/dev/zero", "of=/dev/sda"], raw: "dd if=/dev/zero of=/dev/sda", cwd: /work}
+    want: deny
+    rule: block-destructive-shell
+  - name: "005 shutdown"
+    event: {source: shim, action: shell.exec, cmd: shutdown, argv: [shutdown, now], raw: "shutdown now", cwd: /work}
+    want: deny
+    rule: block-destructive-shell
+  - name: "006 reboot"
+    event: {source: shim, action: shell.exec, cmd: reboot, argv: [reboot], raw: "reboot", cwd: /work}
+    want: deny
+    rule: block-destructive-shell
+  - name: "007 sudo rm -rf (argv flag catches it)"
+    event: {source: shim, action: shell.exec, cmd: sudo, argv: [sudo, rm, -rf, /var], raw: "sudo rm -rf /var", cwd: /work}
+    want: deny
+    rule: block-destructive-shell
+  - name: "008 env FOO=bar rm (argv flag catches it)"
+    event: {source: shim, action: shell.exec, cmd: env, argv: [env, "FOO=bar", rm, -rf, /], raw: "env FOO=bar rm -rf /", cwd: /work}
+    want: deny
+    rule: block-destructive-shell
+
+  # --- git push (require_approval, git-push-ask) ---
+  - name: "009 git push origin main"
+    event: {source: shim, action: shell.exec, cmd: git, argv: [git, push, origin, main], raw: "git push origin main", cwd: /work}
+    want: require_approval
+    rule: git-push-ask
+  - name: "010 git push --force"
+    event: {source: shim, action: shell.exec, cmd: git, argv: [git, push, --force], raw: "git push --force", cwd: /work}
+    want: require_approval
+    rule: git-push-ask
+  - name: "011 git push -u origin feat"
+    event: {source: shim, action: shell.exec, cmd: git, argv: [git, push, -u, origin, feat], raw: "git push -u origin feat", cwd: /work}
+    want: require_approval
+    rule: git-push-ask
+
+  # --- benign shell (fall through to default deny) ---
+  - name: "012 git status"
+    event: {source: shim, action: shell.exec, cmd: git, argv: [git, status], raw: "git status", cwd: /work}
+    want: deny
+    rule: ""
+  - name: "013 ls -la"
+    event: {source: shim, action: shell.exec, cmd: ls, argv: [ls, -la], raw: "ls -la", cwd: /work}
+    want: deny
+    rule: ""
+  - name: "014 npm install"
+    event: {source: shim, action: shell.exec, cmd: npm, argv: [npm, install], raw: "npm install", cwd: /work}
+    want: deny
+    rule: ""
+  - name: "015 curl example.com"
+    event: {source: shim, action: shell.exec, cmd: curl, argv: [curl, "https://example.com"], raw: "curl https://example.com", cwd: /work}
+    want: deny
+    rule: ""
+
+  # --- credential paths (deny, protect-credentials) ---
+  - name: "016 read ~/.ssh/id_rsa (tilde form)"
+    event: {source: mcp, action: fs.read, path: "~/.ssh/id_rsa", cwd: /work}
+    want: deny
+    rule: protect-credentials
+  - name: "017 read ~/.aws/credentials"
+    event: {source: mcp, action: fs.read, path: "~/.aws/credentials", cwd: /work}
+    want: deny
+    rule: protect-credentials
+  - name: "018 read gcloud credentials"
+    event: {source: mcp, action: fs.read, path: "~/.config/gcloud/application_default_credentials.json", cwd: /work}
+    want: deny
+    rule: protect-credentials
+  - name: "019 write authorized_keys"
+    event: {source: mcp, action: fs.write, path: "~/.ssh/authorized_keys", cwd: /work}
+    want: deny
+    rule: protect-credentials
+  - name: "020 delete ~/.ssh/id_rsa"
+    event: {source: mcp, action: fs.delete, path: "~/.ssh/id_rsa", cwd: /work}
+    want: deny
+    rule: protect-credentials
+
+  # --- working directory (allow, workdir-is-free) ---
+  - name: "021 read file in workdir"
+    event: {source: mcp, action: fs.read, path: /work/src/main.go, cwd: /work}
+    want: allow
+    rule: workdir-is-free
+  - name: "022 write new file in workdir"
+    event: {source: mcp, action: fs.write, path: /work/new.go, cwd: /work}
+    want: allow
+    rule: workdir-is-free
+  - name: "023 read relative path under cwd"
+    event: {source: mcp, action: fs.read, path: src/util/helper.go, cwd: /work}
+    want: allow
+    rule: workdir-is-free
+  - name: "024 deep nested write in workdir"
+    event: {source: mcp, action: fs.write, path: /work/a/b/c/d/e.txt, cwd: /work}
+    want: allow
+    rule: workdir-is-free
+
+  # --- filesystem outside allowed set (default deny) ---
+  - name: "025 delete in workdir (rule covers read/write only)"
+    event: {source: mcp, action: fs.delete, path: /work/src/main.go, cwd: /work}
+    want: deny
+    rule: ""
+  - name: "026 read /etc/passwd"
+    event: {source: mcp, action: fs.read, path: /etc/passwd, cwd: /work}
+    want: deny
+    rule: ""
+  - name: "027 read sibling directory"
+    event: {source: mcp, action: fs.read, path: /other-project/main.go, cwd: /work}
+    want: deny
+    rule: ""
+
+  # --- network egress ---
+  - name: "028 egress unknown host asks"
+    event: {source: egress, action: net.egress, host: evil.example, port: 443, cwd: /work}
+    want: require_approval
+    rule: net-egress-ask
+  - name: "029 egress pypi asks"
+    event: {source: egress, action: net.egress, host: pypi.org, port: 443, cwd: /work}
+    want: require_approval
+    rule: net-egress-ask
+  - name: "030 egress api.anthropic.com exempt from ask (default deny)"
+    event: {source: egress, action: net.egress, host: api.anthropic.com, port: 443, cwd: /work}
+    want: deny
+    rule: ""
+  - name: "031 egress raw.githubusercontent.com exempt (default deny)"
+    event: {source: egress, action: net.egress, host: raw.githubusercontent.com, port: 443, cwd: /work}
+    want: deny
+    rule: ""
+  - name: "032 egress lookalike host evilanthropic.com asks"
+    event: {source: egress, action: net.egress, host: evilanthropic.com, port: 443, cwd: /work}
+    want: require_approval
+    rule: net-egress-ask
+
+  # --- MCP tools (no rule matches → default deny) ---
+  - name: "033 mcp delete_file default"
+    event: {source: mcp, action: mcp.tool, server: fs, tool: delete_file, cwd: /work}
+    want: deny
+    rule: ""
+  - name: "034 mcp read_file default"
+    event: {source: mcp, action: mcp.tool, server: fs, tool: read_file, cwd: /work}
+    want: deny
+    rule: ""
+

@@ -59,6 +59,52 @@ func matchHost(patterns []string, host string) bool {
 	return false
 }
 
+// resolvePattern resolves symlinks in the static (non-glob) directory
+// prefix of a pattern, so a pattern like /var/.../real/** matches events
+// whose paths were fully resolved to /private/var/... on macOS.
+// Unresolvable or nonexistent prefixes are kept as-is.
+func resolvePattern(pat string) string {
+	if !strings.ContainsAny(pat, "*?[{") {
+		// Fully static: resolve the dir the pattern would live in.
+		if resolved, err := filepath.EvalSymlinks(filepath.Dir(pat)); err == nil {
+			return filepath.Join(resolved, filepath.Base(pat))
+		}
+		return pat
+	}
+	seps := strings.Split(pat, string(filepath.Separator))
+	staticEnd := 0
+	for i, seg := range seps {
+		if strings.ContainsAny(seg, "*?[{") {
+			break
+		}
+		staticEnd = i + 1
+	}
+	if staticEnd == 0 {
+		return pat
+	}
+	prefix := strings.Join(seps[:staticEnd], string(filepath.Separator))
+	if prefix == "" {
+		prefix = string(filepath.Separator)
+	}
+	resolved, err := filepath.EvalSymlinks(prefix)
+	if err != nil || !filepath.IsAbs(resolved) {
+		// EvalSymlinks(".") returns "." — rewriting would turn "./**"
+		// into "**" and match the universe. Only absolute rewrites are safe.
+		return pat
+	}
+	rest := strings.Join(seps[staticEnd:], string(filepath.Separator))
+	return filepath.Join(resolved, rest)
+}
+
+// resolvePatterns applies resolvePattern to every pattern in the list.
+func resolvePatterns(pats []string) []string {
+	out := make([]string, len(pats))
+	for i, p := range pats {
+		out[i] = resolvePattern(p)
+	}
+	return out
+}
+
 // actionIn reports whether a is in the list.
 func actionIn(list []string, a string) bool {
 	for _, x := range list {

@@ -26,9 +26,8 @@ type compiledRule struct {
 }
 
 type engine struct {
-	rules   []compiledRule
-	def     event.Effect
-	defName string // always "" — RuleName is empty when the default fires
+	rules []compiledRule
+	def   event.Effect
 }
 
 // NewEngine compiles pol into an Engine. Any CEL compile error is fatal.
@@ -39,6 +38,9 @@ func NewEngine(pol *config.Policy) (Engine, error) {
 	}
 	rules := make([]compiledRule, 0, len(pol.Rules))
 	for _, r := range pol.Rules {
+		// Resolve symlinks in static path-pattern prefixes so patterns match
+		// events whose paths were fully resolved (macOS /var → /private/var).
+		r.Match.Path = resolvePatterns(r.Match.Path)
 		cr := compiledRule{
 			name:    r.Name,
 			effect:  event.Effect(r.Effect),

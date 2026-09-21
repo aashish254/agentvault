@@ -75,21 +75,21 @@ type BudgetsCfg struct {
 
 // Rule: first match in document order wins.
 type Rule struct {
-	Name    string  `yaml:"name"`
-	Match   Match   `yaml:"match"`
-	Effect  Effect  `yaml:"effect"`
-	Message string  `yaml:"message,omitempty"`
+	Name    string `yaml:"name"`
+	Match   Match  `yaml:"match"`
+	Effect  Effect `yaml:"effect"`
+	Message string `yaml:"message,omitempty"`
 }
 
 // Match: all populated fields are ANDed; within a list, OR.
 // CEL, when non-empty, must also evaluate true.
 type Match struct {
 	Action  []ActionType `yaml:"action,omitempty"`
-	Path    []string     `yaml:"path,omitempty"`   // glob; ~ expanded; ** supported
-	Host    []string     `yaml:"host,omitempty"`   // exact or *.suffix
+	Path    []string     `yaml:"path,omitempty"` // glob; ~ expanded; ** supported
+	Host    []string     `yaml:"host,omitempty"` // exact or *.suffix
 	NotHost []string     `yaml:"not_host,omitempty"`
-	Tool    []string     `yaml:"tool,omitempty"`   // MCP tool names
-	CEL     string       `yaml:"cel,omitempty"`    // expression over `event`
+	Tool    []string     `yaml:"tool,omitempty"` // MCP tool names
+	CEL     string       `yaml:"cel,omitempty"`  // expression over `event`
 }
 
 // Empty reports whether m has no criteria set.

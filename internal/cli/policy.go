@@ -26,6 +26,7 @@ func newPolicyCheckCmd() *cobra.Command {
 		Use:   "check",
 		Short: "Parse, compile, and lint the policy file",
 		RunE: func(cmd *cobra.Command, args []string) error {
+			out := cmd.OutOrStdout()
 			pol, _, err := config.Load(flagConfig)
 			if err != nil {
 				return err
@@ -34,10 +35,13 @@ func newPolicyCheckCmd() *cobra.Command {
 				return err
 			}
 			for i, r := range pol.Rules {
-				fmt.Printf("  rule %-24s effect=%-16s ok\n", fmt.Sprintf("[%d] %s", i, r.Name), r.Effect)
+				fmt.Fprintf(out, "  rule %-24s effect=%-16s ok\n",
+					fmt.Sprintf("[%d] %s", i, r.Name), r.Effect)
 			}
-			warnShadowing(pol)
-			fmt.Printf("policy OK: %d rules, default=%s\n", len(pol.Rules), pol.Defaults.Action)
+			for _, w := range shadowWarnings(pol) {
+				fmt.Fprintln(cmd.ErrOrStderr(), "warning:", w)
+			}
+			fmt.Fprintf(out, "policy OK: %d rules, default=%s\n", len(pol.Rules), pol.Defaults.Action)
 			return nil
 		},
 	}
@@ -70,29 +74,32 @@ func newPolicyTestCmd() *cobra.Command {
 			if rule == "" {
 				rule = "(default)"
 			}
-			fmt.Printf("verdict=%s rule=%s eval=%dµs\n", v.Effect, rule, v.EvalMicros)
+			out := cmd.OutOrStdout()
+			fmt.Fprintf(out, "verdict=%s rule=%s eval=%dµs\n", v.Effect, rule, v.EvalMicros)
 			if v.Message != "" {
-				fmt.Printf("message: %s\n", v.Message)
+				fmt.Fprintf(out, "message: %s\n", v.Message)
 			}
 			return nil
 		},
 	}
 }
 
-// warnShadowing prints a warning for rules that can never fire because an
-// earlier same-action rule with an overlapping path/host set precedes them.
-// v0.1 heuristic: exact duplicate criteria with a different effect.
-func warnShadowing(pol *config.Policy) {
+// shadowWarnings returns a warning for every rule that can never fire
+// because an earlier rule has identical criteria but a different effect.
+// (v0.1 heuristic: exact duplicate criteria.)
+func shadowWarnings(pol *config.Policy) []string {
+	var out []string
 	for i, a := range pol.Rules {
 		for j := i + 1; j < len(pol.Rules); j++ {
 			b := pol.Rules[j]
 			if sameCriteria(a.Match, b.Match) && a.Effect != b.Effect {
-				fmt.Fprintf(os.Stderr,
-					"warning: rule %q (rules[%d]) is shadowed by %q (rules[%d]) — same criteria, %s wins\n",
-					b.Name, j, a.Name, i, a.Effect)
+				out = append(out, fmt.Sprintf(
+					"rule %q (rules[%d]) is shadowed by %q (rules[%d]) — same criteria, %s wins",
+					b.Name, j, a.Name, i, a.Effect))
 			}
 		}
 	}
+	return out
 }
 
 func sameCriteria(a, b config.Match) bool {

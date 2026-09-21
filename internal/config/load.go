@@ -15,6 +15,7 @@ import (
 // It also returns the raw file bytes (hashed into sessions.policy_hash).
 // Any error is fatal to the caller — fail closed.
 func Load(path string) (p *Policy, raw []byte, err error) {
+	// #nosec G304 -- reading the user-specified config path is the point.
 	raw, err = os.ReadFile(path)
 	if err != nil {
 		return nil, nil, fmt.Errorf("config: read %s: %w", path, err)
