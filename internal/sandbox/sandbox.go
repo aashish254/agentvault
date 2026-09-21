@@ -5,6 +5,8 @@ package sandbox
 
 import (
 	"fmt"
+	"net"
+	"os"
 	"path/filepath"
 	"sort"
 	"strings"
@@ -39,7 +41,38 @@ func Generate(pol *config.Policy, ctx Context) Profile {
 	// dyld and system library loading for any real binary.
 	b.WriteString("(allow default)\n")
 
-	// --- filesystem denies from policy rules ---
+	// --- write restriction ---
+	// deny all writes, then re-allow the work area + scratch + declared
+	// extras + any paths covered by fs.write allow rules.
+	b.WriteString("\n;; write restriction\n")
+	b.WriteString("(deny file-write*)\n")
+	// Device files must stay writable or every shell redirect breaks.
+	b.WriteString("(allow file-write* (subpath \"/dev\"))\n")
+	// macOS per-user scratch dirs ($TMPDIR lives under /var/folders/.../T;
+	// Bun/Node/Go all write there) plus standard config/state dirs agents
+	// legitimately need (opencode failed without these — real smoke test).
+	tmpDir := os.TempDir()
+	writable := []string{
+		ctx.Cwd,
+		"/tmp", "/private/tmp", "/var/tmp", "/private/var/tmp",
+		tmpDir, filepath.Dir(tmpDir), // whole per-user /var/folders/xx tree
+		filepath.Join(ctx.Home, ".agentvault"),       // vault (session state)
+		filepath.Join(ctx.Home, "Library", "Caches"), // toolchains write here
+		filepath.Join(ctx.Home, ".cache"),
+		filepath.Join(ctx.Home, ".config"), // agent config/state
+		filepath.Join(ctx.Home, ".local"),
+		filepath.Join(ctx.Home, ".npm"),   // npm/npx cache
+		filepath.Join(ctx.Home, ".cargo"), // cargo
+	}
+	writable = append(writable, pol.Sandbox.ExtraWritePaths...)
+	writable = append(writable, collectPaths(pol, config.EffectAllow, config.ActionFSWrite)...)
+	writable = dedupeClean(writable)
+	for _, p := range writable {
+		fmt.Fprintf(&b, "(allow file-write* %s)\n", toSBPLDir(p))
+	}
+	notes = append(notes, fmt.Sprintf("writes restricted to %d path(s) incl. cwd", len(writable)))
+
+	// --- filesystem denies (LAST: they override the write allows above) ---
 	// deny rules with path patterns → kernel-enforced read+write denies.
 	denyPaths := collectPaths(pol, config.EffectDeny)
 	if len(denyPaths) > 0 {
@@ -52,30 +85,6 @@ func Generate(pol *config.Policy, ctx Context) Profile {
 		notes = append(notes, "warning: no deny rules with paths — sandbox protects nothing sensitive")
 	}
 
-	// --- write restriction ---
-	// deny all writes, then re-allow the work area + scratch + declared
-	// extras + any paths covered by fs.write allow rules.
-	b.WriteString("\n;; write restriction\n")
-	b.WriteString("(deny file-write*)\n")
-	// Device files must stay writable or every shell redirect breaks.
-	b.WriteString("(allow file-write* (subpath \"/dev\"))\n")
-	writable := []string{
-		ctx.Cwd,
-		"/tmp", "/private/tmp", "/var/tmp", "/private/var/tmp",
-		filepath.Join(ctx.Home, ".agentvault"),       // vault (session state)
-		filepath.Join(ctx.Home, "Library", "Caches"), // toolchains write here
-		filepath.Join(ctx.Home, ".cache"),
-		filepath.Join(ctx.Home, ".npm"),   // npm/npx cache
-		filepath.Join(ctx.Home, ".cargo"), // cargo
-	}
-	writable = append(writable, pol.Sandbox.ExtraWritePaths...)
-	writable = append(writable, collectPaths(pol, config.EffectAllow, config.ActionFSWrite)...)
-	writable = dedupeClean(writable)
-	for _, p := range writable {
-		fmt.Fprintf(&b, "(allow file-write* %s)\n", toSBPLDir(p))
-	}
-	notes = append(notes, fmt.Sprintf("writes restricted to %d path(s) incl. cwd", len(writable)))
-
 	// --- network restriction ---
 	restrict := pol.Sandbox.RestrictNetwork == nil || *pol.Sandbox.RestrictNetwork
 	if ctx.HasEgress && restrict {
@@ -84,7 +93,10 @@ func Generate(pol *config.Policy, ctx Context) Profile {
 		// DNS resolves through mDNSResponder (mach), unaffected by this.
 		b.WriteString("(allow network-outbound (remote tcp \"localhost:*\"))\n")
 		if ctx.ProxyAddr != "" {
-			fmt.Fprintf(&b, "(allow network-outbound (remote tcp \"%s\"))\n", ctx.ProxyAddr)
+			// Seatbelt accepts only "localhost" or "*" as host here —
+			// NOT 127.0.0.1 (caught by real smoke test: profile rejected).
+			_, port, _ := net.SplitHostPort(ctx.ProxyAddr)
+			fmt.Fprintf(&b, "(allow network-outbound (remote tcp \"localhost:%s\"))\n", port)
 		}
 		notes = append(notes, "network-outbound denied except loopback + proxy")
 	}

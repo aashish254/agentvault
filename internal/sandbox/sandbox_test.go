@@ -48,7 +48,7 @@ func TestGenerateGoldenStructure(t *testing.T) {
 		`(allow file-write* (subpath "/private/tmp"))`, // /tmp canonicalized by resolveSymlinks
 		"(deny network-outbound)",
 		`(allow network-outbound (remote tcp "localhost:*"))`,
-		`(allow network-outbound (remote tcp "127.0.0.1:53111"))`,
+		`(allow network-outbound (remote tcp "localhost:53111"))`,
 	}
 	for _, m := range must {
 		if !strings.Contains(sb, m) {
@@ -57,18 +57,23 @@ func TestGenerateGoldenStructure(t *testing.T) {
 	}
 }
 
-func TestDenyBeforeAllowWrite(t *testing.T) {
-	// Seatbelt: later rules override. (deny file-write*) MUST precede the
-	// allows, and deny paths must precede nothing they would shadow.
+func TestDenyPathsComeLast(t *testing.T) {
+	// Seatbelt: later rules override earlier ones. The deny-path block must
+	// come AFTER all write-allows so a writable cache dir can never punch
+	// through ~/.ssh protection (opencode smoke test caught this).
 	sb := Generate(testPolicy(), testCtx()).SBPL
-	denyIdx := strings.Index(sb, "(deny file-write*)")
+	denyBlock := strings.Index(sb, "policy deny paths")
 	allowWorkIdx := strings.Index(sb, `(allow file-write* (subpath "/work"))`)
-	denySSH := strings.Index(sb, `(subpath "/home/u/.ssh")`)
-	if denyIdx < 0 || allowWorkIdx < 0 || denySSH < 0 {
-		t.Fatal("missing rules")
+	denySSHIdx := strings.Index(sb, `(deny file-read* file-write* (subpath "/home/u/.ssh"))`)
+	denyWritesIdx := strings.Index(sb, "(deny file-write*)")
+	if denyBlock < 0 || allowWorkIdx < 0 || denySSHIdx < 0 || denyWritesIdx < 0 {
+		t.Fatal("missing expected rules:\n" + sb)
 	}
-	if denySSH >= denyIdx || denyIdx >= allowWorkIdx {
-		t.Fatalf("rule order wrong — seatbelt later-wins semantics would break:\n%s", sb)
+	if denyWritesIdx >= allowWorkIdx {
+		t.Fatal("(deny file-write*) must precede the allow list")
+	}
+	if denySSHIdx <= allowWorkIdx {
+		t.Fatal("deny paths must come AFTER write-allows (later rules win)")
 	}
 }
 
