@@ -48,6 +48,13 @@ func (t *TelegramChannel) Close() {
 	t.stopped.Do(func() { close(t.stop) })
 }
 
+// SendTest sends a plain message — used by `agentvault init` to verify
+// credentials before enabling the channel.
+func (t *TelegramChannel) SendTest(text string) error {
+	_, err := t.sendMessage(text, nil)
+	return err
+}
+
 // Ask sends the approval card with inline buttons and returns the
 // channel that receives the tap.
 func (t *TelegramChannel) Ask(ctx Context, r Request) (<-chan Response, error) {

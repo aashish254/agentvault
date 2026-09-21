@@ -113,6 +113,26 @@ func (s *Supervisor) Approvals() *approval.Daemon { return s.approvals }
 // SessionID returns this session's ULID.
 func (s *Supervisor) SessionID() string { return s.session }
 
+// ServeOnly starts the IPC listener and egress proxy without a child
+// process — the `agentvault daemon` mode for always-on agents. The
+// caller blocks on signals; shutdown via Close.
+func (s *Supervisor) ServeOnly() error {
+	ln, err := startListener(s.session)
+	if err != nil {
+		return fmt.Errorf("supervisor: ipc listener: %w", err)
+	}
+	s.listener = ln
+	go ln.serve(s)
+	if _, err := s.startEgress(); err != nil {
+		ln.close()
+		return fmt.Errorf("supervisor: egress proxy: %w", err)
+	}
+	if err := shim.EnsureInstalled(s.cfg.Shims.Binaries); err != nil {
+		fmt.Fprintln(os.Stderr, "agentvault: shim install warning:", err)
+	}
+	return nil
+}
+
 // Run executes argv as a supervised child and returns its exit code.
 // It blocks until the child exits or a terminating signal arrives.
 func (s *Supervisor) Run(ctx context.Context, argv []string) (int, error) {

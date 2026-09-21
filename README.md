@@ -1,44 +1,65 @@
 # 🛡 AgentVault
 
-**A runtime permission firewall for AI agents.** Wrap any coding agent — OpenCode, OpenClaw, anything — in declarative YAML rules, one-tap phone approvals, and a tamper-evident audit log of everything it did.
+**A runtime permission firewall for AI agents.** Wrap any agent — OpenCode, OpenClaw, a shell script, anything — in declarative YAML rules, one-tap phone approvals, and a tamper-evident audit log of everything it did.
 
 ```bash
 agentvault run -- opencode
 ```
 
-> ⚠️ **Early development.** v0.1 is guardrails + tamper-evident audit, not a kernel sandbox. Determined agents can bypass PATH shims; kernel-level confinement (macOS Seatbelt / Linux Landlock) generated from the same YAML is the v0.2 roadmap. See [SECURITY.md](SECURITY.md).
+![demo](docs/img/demo.gif)
+
+> ⚠️ **Honest scope.** v0.1 is guardrails + tamper-evident audit, not a kernel sandbox. A determined agent can bypass PATH shims (absolute paths) and proxy env vars. Kernel confinement (macOS Seatbelt / Linux Landlock) generated from the same YAML is the v0.2 roadmap. Details: [SECURITY.md](SECURITY.md).
 
 ## Why
 
-AI agents now run with access to your shell, files, and API keys. AgentVault answers one question: *what is the agent actually doing — and what is it allowed to do?*
+AI agents run with your shell, your files, your API keys. AgentVault answers: *what is the agent doing — and what is it allowed to do?*
 
-- **Deny by default** — credentials, destructive commands, and unknown network egress are blocked unless you say otherwise
-- **One-tap approvals** — dangerous actions page your phone (Telegram) or terminal; approve once, or approve the rule
-- **Tamper-evident audit** — every action hash-chained into a local SQLite log, Ed25519-signed at session close; `agentvault verify` detects any tampering
-- **Zero dependencies** — one static Go binary
+- **Deny by default** — credentials, `rm -rf`, unknown egress blocked unless you say otherwise
+- **One-tap approvals** — dangerous actions page your phone (Telegram) or terminal; approve once or approve the rule
+- **Tamper-evident audit** — every action hash-chained in local SQLite, Ed25519-signed at session close; `agentvault verify` catches any tampering
+- **Single static binary** — no daemons required, no cloud, no telemetry
+
+## Install
+
+```bash
+curl -fsSL https://agentvault.dev/install.sh | sh   # checksum-verified
+agentvault init                                      # writes policy, installs shims
+```
+
+Or from source: `go build ./cmd/agentvault`.
+
+## 60-second tour
+
+```bash
+agentvault policy check          # validate your rules
+agentvault run -- bash           # wrap a shell
+# inside:  rm -rf /tmp/x  → blocked (exit 126), you're told which rule
+#          git push       → your phone pings: [Allow once] [Allow rule] [Deny]
+agentvault log                   # live TUI: every action, verdict, rule, latency
+agentvault verify                # prove nobody edited the log
+```
+
+Four channels are covered: **MCP tool calls** (stdio proxy), **shell commands** (PATH shims), **network egress** (CONNECT proxy), and **filesystem** (via the first two). Details: [docs/SPEC.md](docs/SPEC.md).
+
+## Policy example
+
+```yaml
+version: 1
+defaults: {action: deny}
+rules:
+  - name: protect-credentials
+    match: {action: [fs.read, fs.write, fs.delete], path: ["~/.ssh/**", "~/.aws/**"]}
+    effect: deny
+  - name: git-push-ask
+    match: {action: [shell.exec], cel: 'event.cmd == "git" && event.argv[1] == "push"'}
+    effect: require_approval
+```
+
+More: [agentvault.example.yaml](agentvault.example.yaml) · Integrations: [OpenCode](docs/integrations/opencode.md) · [OpenClaw](docs/integrations/openclaw.md)
 
 ## Status
 
-Weeks 1–4 of the [8-week roadmap](docs/SPEC.md) are done:
-
-- ✅ Policy engine (CEL + glob/host matchers), `policy check` / `policy test`
-- ✅ `agentvault run` — supervisor + PATH shims + tamper-evident audit (macOS, Linux, Windows*)
-- ✅ `agentvault verify` — hash-chain + Ed25519 signature verification
-- ✅ **Approvals** — `require_approval` pages you (Telegram inline buttons / TTY prompt), or resolve from another terminal: `agentvault approve list` / `approve allow <id>`
-- ⏳ MCP proxy, egress proxy, TUI — Weeks 5–6
-
-*Windows: shims are `.cmd` wrappers; IPC is loopback TCP with a session token.
-
-```bash
-cp agentvault.example.yaml agentvault.yaml
-agentvault policy check
-agentvault policy test internal/policy/testdata/fixture_rm_rf.json
-# → verdict=deny rule=block-destructive-shell
-
-agentvault run -- bash   # inside: rm → blocked (exit 126), audited
-```
-
-Platforms: macOS (arm64/amd64), Linux (arm64/amd64), Windows (arm64/amd64).
+Weeks 1–7 of the [8-week roadmap](docs/SPEC.md) complete. All platforms: macOS (arm64/amd64), Linux (arm64/amd64), Windows (arm64/amd64). Windows notes: `.cmd` shims, loopback-TCP IPC with session tokens, Interrupt-only signals.
 
 ## License
 

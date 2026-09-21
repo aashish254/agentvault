@@ -1,0 +1,50 @@
+# goreleaser config — tag a release: git tag v0.1.0 && goreleaser release
+version: 2
+
+project_name: agentvault
+
+before:
+  hooks:
+    - go mod tidy
+    - go test -race ./...
+
+builds:
+  - id: agentvault
+    main: ./cmd/agentvault
+    binary: agentvault
+    env:
+      - CGO_ENABLED=0
+    goos: [darwin, linux, windows]
+    goarch: [amd64, arm64]
+    ldflags:
+      - -s -w
+
+archives:
+  - id: tgz
+    format: tar.gz
+    name_template: "{{ .ProjectName }}-{{ .Os }}-{{ .Arch }}"
+    builds: [agentvault]
+    files: [README.md, LICENSE, agentvault.example.yaml]
+  - id: zip-windows
+    format: zip
+    name_template: "{{ .ProjectName }}-{{ .Os }}-{{ .Arch }}"
+    builds: [agentvault]
+    files: [README.md, LICENSE, agentvault.example.yaml]
+    matrix: # windows only
+      goos: [windows]
+
+checksum:
+  name_template: "checksums.txt"
+  algorithm: sha256
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
+
+release:
+  # Releases are created only when you explicitly run goreleaser.
+  # Nothing is ever pushed automatically from this config.
+  draft: true

@@ -81,7 +81,8 @@ everything they did.`,
 		newLogCmd(),
 		newApproveCmd(),
 		newMCPCmd(),
-		// init, daemon, egress, TUI land in Weeks 6.
+		newInitCmd(),
+		newDaemonCmd(),
 	)
 	return root
 }
