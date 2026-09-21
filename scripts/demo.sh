@@ -25,6 +25,7 @@ rules:
     match: {action: [shell.exec], cel: 'event.cmd == "ls"'}
     effect: allow
 shims: {binaries: [rm, ls]}
+sandbox: {enabled: true}
 audit: {path: "$DEMO_HOME/vault/audit.db"}
 YAML
 
