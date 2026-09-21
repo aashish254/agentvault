@@ -55,6 +55,8 @@ func (h *Harness) Run(argv ...string) (output string, exitCode int) {
 	cmd.Env = append(os.Environ(),
 		"AGENTVAULT_HOME="+h.VaultDir,
 		"AV_WORK="+h.WorkDir,
+		"AV_BIN="+h.Bin,
+		"AV_FIXTURES="+filepath.Join(repoRoot(h.T), "test", "fixtures"),
 	)
 	err := cmd.Run()
 	output = buf.String()
@@ -85,6 +87,8 @@ func (h *Harness) Start(argv ...string) *AsyncRun {
 	cmd.Env = append(os.Environ(),
 		"AGENTVAULT_HOME="+h.VaultDir,
 		"AV_WORK="+h.WorkDir,
+		"AV_BIN="+h.Bin,
+		"AV_FIXTURES="+filepath.Join(repoRoot(h.T), "test", "fixtures"),
 	)
 	if err := cmd.Start(); err != nil {
 		h.T.Fatalf("start run: %v", err)
