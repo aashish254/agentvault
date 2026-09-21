@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/spf13/cobra"
@@ -41,11 +42,17 @@ first divergent sequence number. Exit code 3 means tampered.`,
 			}
 			bad := 0
 			for _, id := range sessions {
-				if err := store.Verify(id); err != nil {
+				err := store.Verify(id)
+				switch {
+				case err == nil:
+					fmt.Fprintf(out, "OK       %s\n", id)
+				case errors.Is(err, audit.ErrUnsealed):
+					// Crashed/killed session: chain intact, just unsigned.
+					// A warning, not a tamper alarm (exit stays 0).
+					fmt.Fprintf(out, "UNSEALED %s: %v\n", id, err)
+				default:
 					fmt.Fprintf(out, "TAMPERED %s: %v\n", id, err)
 					bad++
-				} else {
-					fmt.Fprintf(out, "OK       %s\n", id)
 				}
 			}
 			if bad > 0 {

@@ -81,8 +81,7 @@ func (s *Store) Verify(sessionID string) error {
 		return fmt.Errorf("verify: %w", err)
 	}
 	if !endedAt.Valid || len(headHash) == 0 {
-		return fmt.Errorf("verify: session %s was never sealed (crashed?); chain is intact to seq %d but unsigned",
-			sessionID, lastSeq)
+		return &UnsealedError{SessionID: sessionID, LastSeq: lastSeq}
 	}
 	if !equalBytes(head, headHash) {
 		return fmt.Errorf("verify: chain head mismatch — trailing rows were deleted or altered")
@@ -93,7 +92,22 @@ func (s *Store) Verify(sessionID string) error {
 	return nil
 }
 
-// QueryOpts filters log queries.
+// ErrUnsealed marks a session that was never sealed (crash/kill) but
+// whose chain is intact — NOT tampering, just unsigned. Callers (CLI)
+// render it as a warning, not a tamper alarm.
+var ErrUnsealed = fmt.Errorf("session never sealed (crashed or killed); chain intact but unsigned")
+
+// UnsealedError wraps ErrUnsealed with detail.
+type UnsealedError struct {
+	SessionID string
+	LastSeq   int64
+}
+
+func (e *UnsealedError) Error() string {
+	return fmt.Sprintf("%s: %s (intact to seq %d)", ErrUnsealed, e.SessionID, e.LastSeq)
+}
+func (e *UnsealedError) Unwrap() error { return ErrUnsealed }
+
 type QueryOpts struct {
 	SessionID string
 	Verdict   string // "allow" | "deny" | "require_approval" | ""
