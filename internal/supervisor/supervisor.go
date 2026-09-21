@@ -17,24 +17,26 @@ import (
 	"github.com/aashish/agentvault/internal/config"
 	"github.com/aashish/agentvault/internal/event"
 	"github.com/aashish/agentvault/internal/policy"
+	"github.com/aashish/agentvault/internal/proxy/egress"
 	"github.com/aashish/agentvault/internal/shim"
 )
 
 // Supervisor is the runtime root of a wrapped agent session.
 type Supervisor struct {
-	cfg       *config.Policy
-	engine    policy.Engine
-	store     *audit.Store
-	logger    *audit.Logger
-	listener  *listener
-	session   string
-	approvals *approval.Daemon // always non-nil: IPC resolution needs it
+	cfg         *config.Policy
+	engine      policy.Engine
+	store       *audit.Store
+	logger      *audit.Logger
+	listener    *listener
+	session     string
+	approvals   *approval.Daemon // always non-nil: IPC resolution needs it
+	egressProxy *egress.Proxy    // nil when egress section disabled
 }
 
 // New builds the supervisor: compiles the policy, opens the audit store,
 // and begins a session attributed to the exact policy bytes.
 func New(cfg *config.Policy, policyRaw []byte) (*Supervisor, error) {
-	eng, err := policy.NewEngine(cfg)
+	eng, err := policy.NewEngine(withEgressRules(cfg))
 	if err != nil {
 		return nil, err
 	}
@@ -127,16 +129,26 @@ func (s *Supervisor) Run(ctx context.Context, argv []string) (int, error) {
 	defer ln.close()
 	go ln.serve(s)
 
-	// 2. Install shims (idempotent).
+	// 2. Egress proxy (loopback; enabled when egress.listen is set).
+	proxyURL, err := s.startEgress()
+	if err != nil {
+		return ExitCheckFailed, fmt.Errorf("supervisor: egress proxy: %w", err)
+	}
+	if s.egressProxy != nil {
+		defer s.egressProxy.Close()
+	}
+
+	// 3. Install shims (idempotent).
 	if err := shim.EnsureInstalled(s.cfg.Shims.Binaries); err != nil {
 		fmt.Fprintln(os.Stderr, "agentvault: shim install warning:", err)
 	}
 
-	// 3. Spawn child with instrumented environment.
+	// 4. Spawn child with instrumented environment.
 	child, err := spawnChild(argv, childEnv{
 		ShimDir:   shim.Dir(),
 		SessionID: s.session,
 		IPCEnv:    ln.envVars(),
+		ProxyURL:  proxyURL,
 	})
 	if err != nil {
 		return ExitCheckFailed, fmt.Errorf("supervisor: spawn %q: %w", argv[0], err)

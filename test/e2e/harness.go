@@ -46,6 +46,11 @@ func New(t *testing.T, policyYAML string) *Harness {
 // Run executes `agentvault run -- <argv...>` with the isolated env and
 // returns combined output and the process exit code.
 func (h *Harness) Run(argv ...string) (output string, exitCode int) {
+	return h.RunEnv(nil, argv...)
+}
+
+// RunEnv is Run with extra environment variables for the child.
+func (h *Harness) RunEnv(extra map[string]string, argv ...string) (output string, exitCode int) {
 	h.T.Helper()
 	args := append([]string{"-c", h.Policy, "run", "--"}, argv...)
 	cmd := exec.Command(h.Bin, args...)
@@ -58,6 +63,9 @@ func (h *Harness) Run(argv ...string) (output string, exitCode int) {
 		"AV_BIN="+h.Bin,
 		"AV_FIXTURES="+filepath.Join(repoRoot(h.T), "test", "fixtures"),
 	)
+	for k, v := range extra {
+		cmd.Env = append(cmd.Env, k+"="+v)
+	}
 	err := cmd.Run()
 	output = buf.String()
 	if err == nil {

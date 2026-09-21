@@ -12,6 +12,7 @@ type childEnv struct {
 	ShimDir   string
 	SessionID string
 	IPCEnv    []string // platform-specific: AGENTVAULT_SOCK or ADDR+TOKEN
+	ProxyURL  string   // loopback egress proxy ("" = disabled)
 }
 
 // spawnChild starts argv with stdio wired to the terminal and the
@@ -40,11 +41,23 @@ func buildChildEnv(env childEnv) []string {
 	if h := os.Getenv("AGENTVAULT_HOME"); h != "" {
 		out = append(out, "AGENTVAULT_HOME="+h)
 	}
+	if env.ProxyURL != "" {
+		out = append(out,
+			"HTTP_PROXY="+env.ProxyURL, "HTTPS_PROXY="+env.ProxyURL,
+			"http_proxy="+env.ProxyURL, "https_proxy="+env.ProxyURL,
+			// Loopback targets must never round-trip through the proxy.
+			"NO_PROXY=localhost,127.0.0.1,::1", "no_proxy=localhost,127.0.0.1,::1",
+		)
+	}
 	out = append(out, env.IPCEnv...)
 	for _, kv := range os.Environ() {
 		k := strings.SplitN(kv, "=", 2)[0]
+		kl := strings.ToLower(k)
 		if strings.EqualFold(k, "PATH") || strings.HasPrefix(k, "AGENTVAULT_") {
 			continue // ours wins
+		}
+		if env.ProxyURL != "" && (kl == "http_proxy" || kl == "https_proxy" || kl == "no_proxy") {
+			continue // replaced by ours
 		}
 		out = append(out, kv)
 	}

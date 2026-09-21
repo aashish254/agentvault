@@ -5,10 +5,12 @@ import (
 	"fmt"
 	"time"
 
+	tea "github.com/charmbracelet/bubbletea"
 	"github.com/spf13/cobra"
 
 	"github.com/aashish/agentvault/internal/audit"
 	"github.com/aashish/agentvault/internal/config"
+	"github.com/aashish/agentvault/internal/tui"
 )
 
 func newLogCmd() *cobra.Command {
@@ -25,7 +27,19 @@ func newLogCmd() *cobra.Command {
 		Short: "Inspect the audit log (TUI lands in Week 6; --export now)",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if export == "" {
-				return fmt.Errorf("the interactive TUI lands in Week 6 — use --export json for now")
+				// Interactive TUI (BubbleTea): live tail, filters, detail pane.
+				pol, _, err := config.Load(flagConfig)
+				if err != nil {
+					return err
+				}
+				store, err := audit.Open(pol.Audit.Path)
+				if err != nil {
+					return err
+				}
+				defer func() { _ = store.Close() }()
+				prog := tea.NewProgram(tui.NewModel(store), tea.WithAltScreen())
+				_, err = prog.Run()
+				return err
 			}
 			if export != "json" && export != "jsonl" {
 				return fmt.Errorf("unsupported export format %q (json)", export)
