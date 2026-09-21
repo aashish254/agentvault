@@ -9,8 +9,10 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"strconv"
 	"time"
 
+	"github.com/aashish/agentvault/internal/approval"
 	"github.com/aashish/agentvault/internal/audit"
 	"github.com/aashish/agentvault/internal/config"
 	"github.com/aashish/agentvault/internal/event"
@@ -20,16 +22,13 @@ import (
 
 // Supervisor is the runtime root of a wrapped agent session.
 type Supervisor struct {
-	cfg      *config.Policy
-	engine   policy.Engine
-	store    *audit.Store
-	logger   *audit.Logger
-	listener *listener
-	session  string
-
-	// approvals are wired in Week 4; until then require_approval
-	// degrades to deny with an explanatory message (fail closed).
-	approvalAvailable bool
+	cfg       *config.Policy
+	engine    policy.Engine
+	store     *audit.Store
+	logger    *audit.Logger
+	listener  *listener
+	session   string
+	approvals *approval.Daemon // always non-nil: IPC resolution needs it
 }
 
 // New builds the supervisor: compiles the policy, opens the audit store,
@@ -70,13 +69,44 @@ func New(cfg *config.Policy, policyRaw []byte) (*Supervisor, error) {
 		return nil, err
 	}
 	return &Supervisor{
-		cfg:     cfg,
-		engine:  eng,
-		store:   store,
-		logger:  lg,
-		session: sessionID,
+		cfg:       cfg,
+		engine:    eng,
+		store:     store,
+		logger:    lg,
+		session:   sessionID,
+		approvals: buildApprovalDaemon(cfg),
 	}, nil
 }
+
+// buildApprovalDaemon assembles channels from config. The daemon always
+// exists (IPC resolution via `agentvault approve` needs it); channels
+// are notification layers on top.
+func buildApprovalDaemon(cfg *config.Policy) *approval.Daemon {
+	var channels []approval.Channel
+	if cfg.Approvals.Channels.TTY.Enabled {
+		if tty := approval.NewTTY(); tty != nil {
+			channels = append(channels, tty)
+		}
+	}
+	if tg := cfg.Approvals.Channels.Telegram; tg.Enabled {
+		token := os.Getenv(tg.BotTokenEnv)
+		chatID, err := parseChatID(os.Getenv(tg.ChatIDEnv))
+		if err == nil && token != "" {
+			channels = append(channels, approval.NewTelegram(token, chatID, ""))
+		} else {
+			fmt.Fprintln(os.Stderr, "agentvault: telegram misconfigured, channel disabled")
+		}
+	}
+	return approval.New(channels, cfg.Approvals.Timeout)
+}
+
+// parseChatID validates Telegram's numeric chat id.
+func parseChatID(s string) (int64, error) {
+	return strconv.ParseInt(s, 10, 64)
+}
+
+// Approvals exposes the daemon (tests + IPC handlers).
+func (s *Supervisor) Approvals() *approval.Daemon { return s.approvals }
 
 // SessionID returns this session's ULID.
 func (s *Supervisor) SessionID() string { return s.session }
@@ -125,20 +155,30 @@ func (s *Supervisor) Run(ctx context.Context, argv []string) (int, error) {
 	return code, nil
 }
 
-// Evaluate is the IPC request handler: policy verdict + audit write.
+// Evaluate is the IPC request handler: policy verdict, approval wait
+// when required, audit write. May block up to the approval timeout.
 func (s *Supervisor) Evaluate(e event.Event) event.Verdict {
 	v := s.engine.Evaluate(e)
-	if v.Effect == event.RequireApproval && !s.approvalAvailable {
-		// Week 2 degradation: no approval daemon yet, so asks become
-		// denies with an explanation. Fail closed (SPEC §1.1).
-		v = event.Verdict{
-			Effect:   event.Deny,
-			RuleName: v.RuleName,
-			Message:  fmt.Sprintf("requires approval, but the approval daemon is not running (rule %q); denied by fail-closed default", v.RuleName),
-		}
+	if v.Effect != event.RequireApproval {
+		s.logger.Log(e, v, nil)
+		return v
 	}
-	s.logger.Log(e, v, nil)
-	return v
+	dec := s.approvals.Submit(context.Background(), e, v.RuleName)
+	final := event.Verdict{
+		Effect:     dec.FinalEffect,
+		RuleName:   v.RuleName,
+		EvalMicros: v.EvalMicros,
+	}
+	switch {
+	case dec.TimedOut:
+		final.Message = fmt.Sprintf("approval timed out (rule %q); denied — fail closed", v.RuleName)
+	case dec.FinalEffect == event.Allow:
+		final.Message = fmt.Sprintf("approved by %s in %s", dec.ApprovedBy, dec.Waited.Round(time.Millisecond))
+	default:
+		final.Message = fmt.Sprintf("denied by %s", dec.ApprovedBy)
+	}
+	s.logger.Log(e, v, &dec)
+	return final
 }
 
 // Close flushes the logger and seals + closes the store.

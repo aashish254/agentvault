@@ -51,6 +51,7 @@ func (h *Harness) Run(argv ...string) (output string, exitCode int) {
 	cmd := exec.Command(h.Bin, args...)
 	var buf bytes.Buffer
 	cmd.Stdout, cmd.Stderr = &buf, &buf
+	cmd.Dir = h.WorkDir // never run fake agents in the real repo
 	cmd.Env = append(os.Environ(),
 		"AGENTVAULT_HOME="+h.VaultDir,
 		"AV_WORK="+h.WorkDir,
@@ -65,6 +66,54 @@ func (h *Harness) Run(argv ...string) (output string, exitCode int) {
 	}
 	h.T.Fatalf("run failed to execute: %v\n%s", err, output)
 	return "", -1
+}
+
+// AsyncRun is a running `agentvault run` process.
+type AsyncRun struct {
+	cmd *exec.Cmd
+	buf *bytes.Buffer
+}
+
+// Start begins `agentvault run -- <argv...>` without blocking.
+func (h *Harness) Start(argv ...string) *AsyncRun {
+	h.T.Helper()
+	args := append([]string{"-c", h.Policy, "run", "--"}, argv...)
+	cmd := exec.Command(h.Bin, args...)
+	buf := &bytes.Buffer{}
+	cmd.Stdout, cmd.Stderr = buf, buf
+	cmd.Dir = h.WorkDir
+	cmd.Env = append(os.Environ(),
+		"AGENTVAULT_HOME="+h.VaultDir,
+		"AV_WORK="+h.WorkDir,
+	)
+	if err := cmd.Start(); err != nil {
+		h.T.Fatalf("start run: %v", err)
+	}
+	return &AsyncRun{cmd: cmd, buf: buf}
+}
+
+// Wait blocks for the run to finish and returns output + exit code.
+func (r *AsyncRun) Wait(t *testing.T) (string, int) {
+	t.Helper()
+	err := r.cmd.Wait()
+	if err == nil {
+		return r.buf.String(), 0
+	}
+	if ee, ok := err.(*exec.ExitError); ok {
+		return r.buf.String(), ee.ExitCode()
+	}
+	t.Fatalf("run wait: %v", err)
+	return "", -1
+}
+
+// Approve runs `agentvault approve <list|allow|deny> [id]` against the
+// live session and returns combined output.
+func (h *Harness) Approve(args ...string) (string, error) {
+	h.T.Helper()
+	cmd := exec.Command(h.Bin, append([]string{"-c", h.Policy, "approve"}, args...)...)
+	cmd.Env = append(os.Environ(), "AGENTVAULT_HOME="+h.VaultDir)
+	out, err := cmd.CombinedOutput()
+	return string(out), err
 }
 
 // AuditLog returns the audit records via `agentvault log --export json`

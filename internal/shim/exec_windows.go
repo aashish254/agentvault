@@ -4,20 +4,9 @@ package shim
 
 import (
 	"fmt"
-	"net"
 	"os"
 	"os/exec"
-	"time"
 )
-
-// dialIPC connects to the supervisor's loopback TCP listener.
-func dialIPC(timeout time.Duration) (net.Conn, error) {
-	addr := os.Getenv("AGENTVAULT_ADDR")
-	if addr == "" {
-		return nil, fmt.Errorf("AGENTVAULT_ADDR not set — not running under agentvault?")
-	}
-	return net.DialTimeout("tcp", addr, timeout)
-}
 
 // execReal: Windows has no execve; spawn the real binary with stdio
 // passthrough and propagate its exit code. Adds one process of overhead
@@ -28,6 +17,7 @@ func execReal(name string, args []string) int {
 		fmt.Fprintln(os.Stderr, "agentvault:", err)
 		return ExitCheckFailed
 	}
+	// #nosec G204 -- exec of the policy-approved real binary is the feature.
 	cmd := exec.Command(bin, args...)
 	cmd.Stdin, cmd.Stdout, cmd.Stderr = os.Stdin, os.Stdout, os.Stderr
 	if err := cmd.Run(); err != nil {

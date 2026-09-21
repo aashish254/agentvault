@@ -4,21 +4,9 @@ package shim
 
 import (
 	"fmt"
-	"net"
 	"os"
 	"syscall"
-	"time"
 )
-
-// dialIPC connects to the supervisor's unix socket.
-func dialIPC(timeout time.Duration) (net.Conn, error) {
-	sock := os.Getenv("AGENTVAULT_SOCK")
-	if sock == "" {
-		return nil, fmt.Errorf("AGENTVAULT_SOCK not set — not running under agentvault?")
-	}
-	// #nosec G704 -- sock is our own session socket path from the supervisor.
-	return net.DialTimeout("unix", sock, timeout)
-}
 
 // execReal replaces this process with the real binary — zero wrapper
 // overhead after the verdict (SPEC §4.2). Only returns on error.

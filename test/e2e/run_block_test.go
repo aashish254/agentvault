@@ -9,10 +9,13 @@ import (
 )
 
 // e2ePolicy mirrors the Week-2 acceptance scenario: rm denied, ls
-// allowed, git push requires approval (degrades to deny in Week 2).
+// allowed, git push requires approval (times out → deny in 2s here;
+// the live approval path is covered by TestApprovalViaCLI).
 const e2ePolicy = `
 version: 1
 defaults: {action: deny}
+approvals:
+  timeout: 2s
 rules:
   - name: block-rm
     match:
@@ -71,9 +74,9 @@ func TestRunBlocksDestructiveCommand(t *testing.T) {
 		t.Fatal("victim directory was deleted — the block FAILED")
 	}
 
-	// 4. require_approval fails closed while no approval daemon exists.
-	if !strings.Contains(out, "push-exit=126") || !strings.Contains(out, "fail-closed") {
-		t.Fatalf("git push must fail closed with explanation:\n%s", out)
+	// 4. require_approval with nobody answering: timeout → deny.
+	if !strings.Contains(out, "push-exit=126") || !strings.Contains(out, "timed out") {
+		t.Fatalf("git push must time out into a deny:\n%s", out)
 	}
 
 	// 5. Audit log recorded all three attempts with correct verdicts.
@@ -91,13 +94,22 @@ func TestRunBlocksDestructiveCommand(t *testing.T) {
 				Effect   string `json:"effect"`
 				RuleName string `json:"rule_name"`
 			} `json:"verdict"`
+			Decision *struct {
+				FinalEffect string `json:"final_effect"`
+				TimedOut    bool   `json:"timed_out"`
+			} `json:"decision"`
 		}
 		if err := json.Unmarshal([]byte(ln), &rec); err != nil {
 			t.Fatalf("bad audit line: %v\n%s", err, ln)
 		}
-		verdicts = append(verdicts, rec.Event.Cmd+":"+rec.Verdict.Effect+":"+rec.Verdict.RuleName)
+		v := rec.Event.Cmd + ":" + rec.Verdict.Effect + ":" + rec.Verdict.RuleName
+		if rec.Decision != nil {
+			v += ":" + rec.Decision.FinalEffect
+		}
+		verdicts = append(verdicts, v)
 	}
-	want := []string{"ls:allow:allow-ls", "rm:deny:block-rm", "git:deny:ask-push"}
+	// The ask: verdict=require_approval, then decision=deny via timeout.
+	want := []string{"ls:allow:allow-ls", "rm:deny:block-rm", "git:require_approval:ask-push:deny"}
 	for i, w := range want {
 		if verdicts[i] != w {
 			t.Fatalf("audit[%d] = %q, want %q", i, verdicts[i], w)

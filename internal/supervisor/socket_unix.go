@@ -3,13 +3,10 @@
 package supervisor
 
 import (
-	"encoding/json"
 	"fmt"
 	"net"
 	"os"
 	"path/filepath"
-
-	"github.com/aashish/agentvault/internal/event"
 )
 
 // listener is a unix-domain socket at <vault>/run/<session>.sock,
@@ -70,16 +67,5 @@ func (l *listener) serve(s *Supervisor) {
 
 func handleConn(conn net.Conn, s *Supervisor) {
 	defer func() { _ = conn.Close() }()
-	var req event.EvalRequest
-	if err := json.NewDecoder(conn).Decode(&req); err != nil || req.Type != "eval" {
-		return // malformed: no response, shim fails closed
-	}
-	v := s.Evaluate(req.Event)
-	resp := event.EvalResponse{
-		Type:     "verdict",
-		Effect:   v.Effect,
-		RuleName: v.RuleName,
-		Message:  v.Message,
-	}
-	_ = json.NewEncoder(conn).Encode(resp)
+	handleRequest(conn, s, "") // unix sockets need no token (fs perms)
 }

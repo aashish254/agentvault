@@ -19,11 +19,13 @@ AI agents now run with access to your shell, files, and API keys. AgentVault ans
 
 ## Status
 
-Weeks 1–2 of the [8-week roadmap](docs/SPEC.md) are done:
+Weeks 1–4 of the [8-week roadmap](docs/SPEC.md) are done:
 
 - ✅ Policy engine (CEL + glob/host matchers), `policy check` / `policy test`
-- ✅ `agentvault run` — supervisor + PATH shims + live audit log (macOS, Linux, Windows*)
-- ⏳ Approvals (Telegram/TUI), MCP proxy, egress proxy, TUI — Weeks 3–6
+- ✅ `agentvault run` — supervisor + PATH shims + tamper-evident audit (macOS, Linux, Windows*)
+- ✅ `agentvault verify` — hash-chain + Ed25519 signature verification
+- ✅ **Approvals** — `require_approval` pages you (Telegram inline buttons / TTY prompt), or resolve from another terminal: `agentvault approve list` / `approve allow <id>`
+- ⏳ MCP proxy, egress proxy, TUI — Weeks 5–6
 
 *Windows: shims are `.cmd` wrappers; IPC is loopback TCP with a session token.
 

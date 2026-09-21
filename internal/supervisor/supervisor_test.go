@@ -41,6 +41,8 @@ func testSupervisor(t *testing.T, policyYAML string) *Supervisor {
 const supPolicy = `
 version: 1
 defaults: {action: deny}
+approvals:
+  timeout: 200ms
 rules:
   - name: block-rm
     match:
@@ -76,10 +78,10 @@ func TestEvaluateAllowDenyAskDegradation(t *testing.T) {
 	if v := sup.Evaluate(mk("rm")); v.Effect != event.Deny {
 		t.Fatalf("rm: %s", v.Effect)
 	}
-	// require_approval with no approval daemon → fail-closed deny.
+	// require_approval with no human answering → timeout → deny.
 	v := sup.Evaluate(mk("git"))
-	if v.Effect != event.Deny || !strings.Contains(v.Message, "fail-closed") {
-		t.Fatalf("ask must degrade to deny with explanation, got %+v", v)
+	if v.Effect != event.Deny || !strings.Contains(v.Message, "timed out") {
+		t.Fatalf("ask must time out into deny, got %+v", v)
 	}
 	// Audit store must contain all three events.
 	if err := sup.logger.Flush(5 * time.Second); err != nil {

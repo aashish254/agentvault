@@ -4,21 +4,23 @@ package supervisor
 
 import (
 	"crypto/rand"
-	"crypto/subtle"
 	"encoding/hex"
 	"encoding/json"
 	"net"
+	"os"
+	"path/filepath"
 
-	"github.com/aashish/agentvault/internal/event"
+	"github.com/aashish/agentvault/internal/ipc"
 )
 
 // listener is a loopback TCP socket with a per-session random token.
 // Windows has no unix sockets; loopback + 128-bit token in the child's
 // environment is the equivalent trust boundary (SPEC §3.3 note).
 type listener struct {
-	ln    net.Listener
-	addr  string
-	token string
+	ln          net.Listener
+	addr        string
+	token       string
+	sessionFile string
 }
 
 func startListener(session string) (*listener, error) {
@@ -31,11 +33,19 @@ func startListener(session string) (*listener, error) {
 		_ = ln.Close()
 		return nil, err
 	}
-	return &listener{
+	l := &listener{
 		ln:    ln,
 		addr:  ln.Addr().String(),
 		token: hex.EncodeToString(tok),
-	}, nil
+	}
+	// Publish endpoint for out-of-process clients (`agentvault approve`).
+	if sf, err := json.Marshal(map[string]string{"addr": l.addr, "token": l.token}); err == nil {
+		p := ipc.SessionFilePath(session)
+		_ = os.MkdirAll(filepath.Dir(p), 0o700)
+		_ = os.WriteFile(p, sf, 0o600)
+		l.sessionFile = p
+	}
+	return l, nil
 }
 
 func (l *listener) envVars() []string {
@@ -45,7 +55,12 @@ func (l *listener) envVars() []string {
 	}
 }
 
-func (l *listener) close() { _ = l.ln.Close() }
+func (l *listener) close() {
+	_ = l.ln.Close()
+	if l.sessionFile != "" {
+		_ = os.Remove(l.sessionFile)
+	}
+}
 
 func (l *listener) serve(s *Supervisor) {
 	for {
@@ -59,19 +74,5 @@ func (l *listener) serve(s *Supervisor) {
 
 func handleConn(conn net.Conn, s *Supervisor, token string) {
 	defer func() { _ = conn.Close() }()
-	var req event.EvalRequest
-	if err := json.NewDecoder(conn).Decode(&req); err != nil || req.Type != "eval" {
-		return
-	}
-	// Constant-time compare: a wrong token gets silence, not a verdict.
-	if subtle.ConstantTimeCompare([]byte(req.Token), []byte(token)) != 1 {
-		return
-	}
-	v := s.Evaluate(req.Event)
-	_ = json.NewEncoder(conn).Encode(event.EvalResponse{
-		Type:     "verdict",
-		Effect:   v.Effect,
-		RuleName: v.RuleName,
-		Message:  v.Message,
-	})
+	handleRequest(conn, s, token) // token checked inside, constant-time
 }

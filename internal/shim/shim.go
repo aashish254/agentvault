@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/aashish/agentvault/internal/event"
+	"github.com/aashish/agentvault/internal/ipc"
 	"github.com/aashish/agentvault/internal/paths"
 )
 
@@ -73,7 +74,7 @@ func buildEvent(name string, args []string) event.Event {
 // askSupervisor sends the event over the platform IPC channel.
 // Dial timeout is short: a dead supervisor must not hang the agent.
 func askSupervisor(e event.Event) (event.EvalResponse, error) {
-	conn, err := dialIPC(200 * time.Millisecond)
+	conn, err := ipc.DialEnv(200 * time.Millisecond)
 	if err != nil {
 		return event.EvalResponse{}, err
 	}
