@@ -21,13 +21,28 @@ func newPolicyCmd() *cobra.Command {
 	return cmd
 }
 
+
+// resolveConfig returns the config path to use: an explicit --config flag
+// wins; otherwise git-style discovery (cwd upward, then home).
+func resolveConfig() string {
+	if flagConfig != "agentvault.yaml" { // explicit flag
+		if _, err := os.Stat(flagConfig); err == nil {
+			return flagConfig
+		}
+	}
+	if p, ok := config.Discover(); ok {
+		return p
+	}
+	return flagConfig // not found: let Load produce the error
+}
+
 func newPolicyCheckCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "check",
 		Short: "Parse, compile, and lint the policy file",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			out := cmd.OutOrStdout()
-			pol, _, err := config.Load(flagConfig)
+			pol, _, err := config.Load(resolveConfig())
 			if err != nil {
 				return err
 			}
@@ -53,7 +68,7 @@ func newPolicyTestCmd() *cobra.Command {
 		Short: "Evaluate a JSON-encoded event against the policy",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			pol, _, err := config.Load(flagConfig)
+			pol, _, err := config.Load(resolveConfig())
 			if err != nil {
 				return err
 			}

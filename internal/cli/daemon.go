@@ -23,7 +23,7 @@ func newDaemonCmd() *cobra.Command {
 always-on agents (e.g. OpenClaw). Resolve requests from another
 terminal with 'agentvault approve list|allow|deny', or via Telegram.`,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			pol, raw, err := config.Load(flagConfig)
+			pol, raw, err := config.Load(resolveConfig())
 			if err != nil {
 				return err
 			}

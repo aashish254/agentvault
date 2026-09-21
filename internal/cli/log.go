@@ -28,7 +28,7 @@ func newLogCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if export == "" {
 				// Interactive TUI (BubbleTea): live tail, filters, detail pane.
-				pol, _, err := config.Load(flagConfig)
+				pol, _, err := config.Load(resolveConfig())
 				if err != nil {
 					return err
 				}
@@ -44,7 +44,7 @@ func newLogCmd() *cobra.Command {
 			if export != "json" && export != "jsonl" {
 				return fmt.Errorf("unsupported export format %q (json)", export)
 			}
-			pol, _, err := config.Load(flagConfig)
+			pol, _, err := config.Load(resolveConfig())
 			if err != nil {
 				return err
 			}

@@ -83,6 +83,7 @@ everything they did.`,
 		newMCPCmd(),
 		newInitCmd(),
 		newDaemonCmd(),
+		newIntegrateCmd(),
 	)
 	return root
 }

@@ -20,7 +20,7 @@ Ed25519 signature written when the session closed. Any tampering —
 edited rows, deleted rows, reordered rows — is reported with the
 first divergent sequence number. Exit code 3 means tampered.`,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			pol, _, err := config.Load(flagConfig)
+			pol, _, err := config.Load(resolveConfig())
 			if err != nil {
 				return err
 			}

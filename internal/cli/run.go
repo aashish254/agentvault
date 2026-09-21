@@ -18,7 +18,7 @@ and recorded in the tamper-evident audit log.`,
 		Example: "  agentvault run -- opencode\n  agentvault run -- bash",
 		Args:    cobra.MinimumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			pol, raw, err := config.Load(flagConfig)
+			pol, raw, err := config.Load(resolveConfig())
 			if err != nil {
 				return err
 			}
