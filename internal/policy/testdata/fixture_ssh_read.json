@@ -1,0 +1,9 @@
+{
+  "id": "01JEXAMPLE0000000000000000CC",
+  "session_id": "fixture",
+  "ts": "2026-09-20T12:00:00Z",
+  "source": "mcp",
+  "action": "fs.read",
+  "path": "~/.ssh/id_rsa",
+  "cwd": "/work"
+}

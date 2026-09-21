@@ -1,0 +1,71 @@
+# AgentVault example policy — copy to agentvault.yaml and edit.
+# First matching rule wins. Anything unmatched hits defaults.action.
+version: 1
+
+agent:
+  name: "opencode"
+
+defaults:
+  action: deny                    # allow | deny | require_approval
+  approval_timeout: 60s
+
+budgets:
+  max_actions_per_minute: 120     # excess actions require approval
+  daily_spend_usd: 2.00           # parsed, not yet enforced (v0.2)
+
+rules:
+  - name: "protect-credentials"
+    match:
+      action: [fs.read, fs.write, fs.delete]
+      path: ["~/.ssh/**", "~/.aws/**", "~/.config/gcloud/**"]
+    effect: deny
+    message: "Credential paths are off-limits to agents."
+
+  - name: "block-destructive-shell"
+    match:
+      action: [shell.exec]
+      cel: 'event.cmd in ["rm","dd","mkfs","shutdown","reboot"] || event.argv.exists(a, a.startsWith("-rf"))'
+    effect: deny
+    message: "Destructive shell commands are blocked."
+
+  - name: "workdir-is-free"
+    match:
+      action: [fs.read, fs.write]
+      path: ["./**"]
+    effect: allow
+
+  - name: "net-egress-ask"
+    match:
+      action: [net.egress]
+      not_host: ["api.anthropic.com", "api.openai.com", "*.githubusercontent.com"]
+    effect: require_approval
+
+  - name: "git-push-ask"
+    match:
+      action: [shell.exec]
+      cel: 'event.cmd == "git" && event.argv.size() > 1 && event.argv[1] == "push"'
+    effect: require_approval
+    message: "Pushing code requires your approval."
+
+approvals:
+  timeout: 60s
+  channels:
+    tty:
+      enabled: true
+    telegram:
+      enabled: false              # flip to true after `agentvault init` sets env vars
+      bot_token_env: AGENTVAULT_TELEGRAM_TOKEN
+      chat_id_env: AGENTVAULT_TELEGRAM_CHAT_ID
+
+shims:
+  binaries: [rm, curl, wget, ssh, scp, git, npm, npx, pip, brew, dd]
+
+egress:
+  listen: "127.0.0.1:0"
+  default: deny
+  allow_hosts: ["api.anthropic.com", "api.openai.com"]
+
+audit:
+  path: "~/.agentvault/audit.db"
+  retention_days: 90
+  sign_on_close: true

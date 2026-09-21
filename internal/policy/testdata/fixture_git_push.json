@@ -1,0 +1,12 @@
+{
+  "id": "01JEXAMPLE0000000000000000BB",
+  "session_id": "fixture",
+  "ts": "2026-09-20T12:00:00Z",
+  "source": "shim",
+  "action": "shell.exec",
+  "cmd": "git",
+  "argv": ["git", "push", "origin", "main"],
+  "raw": "git push origin main",
+  "cwd": "/work",
+  "pid": 1
+}

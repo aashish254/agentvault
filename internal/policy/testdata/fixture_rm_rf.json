@@ -1,0 +1,12 @@
+{
+  "id": "01JEXAMPLE0000000000000000AA",
+  "session_id": "fixture",
+  "ts": "2026-09-20T12:00:00Z",
+  "source": "shim",
+  "action": "shell.exec",
+  "cmd": "rm",
+  "argv": ["rm", "-rf", "/"],
+  "raw": "rm -rf /",
+  "cwd": "/work",
+  "pid": 1
+}
