@@ -542,7 +542,7 @@ CREATE TABLE IF NOT EXISTS events (
     wait_ms       INTEGER,
     eval_micros   INTEGER,
     prev_hash     BLOB NOT NULL,               -- 32 B; genesis = sha256("agentvault:v1")
-    row_hash      BLOB NOT NULL,               -- sha256(prev_hash || payload || verdict || ts)
+    row_hash      BLOB NOT NULL,               -- sha256(prev_hash || payload || verdict || rule_name || ts)
     UNIQUE(session_id, seq)
 );
 CREATE INDEX IF NOT EXISTS idx_events_ts      ON events(ts);

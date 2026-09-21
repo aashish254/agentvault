@@ -10,7 +10,9 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
+	"github.com/aashish/agentvault/internal/audit"
 	"github.com/aashish/agentvault/internal/config"
 	"github.com/aashish/agentvault/internal/event"
 )
@@ -19,16 +21,16 @@ func testSupervisor(t *testing.T, policyYAML string) *Supervisor {
 	t.Helper()
 	t.Setenv("AGENTVAULT_HOME", t.TempDir())
 	vault := os.Getenv("AGENTVAULT_HOME")
-	full := policyYAML + "\naudit:\n  path: \"" + filepath.Join(vault, "audit.jsonl") + "\"\n"
+	full := policyYAML + "\naudit:\n  path: \"" + filepath.Join(vault, "audit.db") + "\"\n"
 	p := filepath.Join(vault, "agentvault.yaml")
 	if err := os.WriteFile(p, []byte(full), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	pol, _, err := config.Load(p)
+	pol, raw, err := config.Load(p)
 	if err != nil {
 		t.Fatal(err)
 	}
-	sup, err := New(pol)
+	sup, err := New(pol, raw)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -79,13 +81,16 @@ func TestEvaluateAllowDenyAskDegradation(t *testing.T) {
 	if v.Effect != event.Deny || !strings.Contains(v.Message, "fail-closed") {
 		t.Fatalf("ask must degrade to deny with explanation, got %+v", v)
 	}
-	// Audit log must contain all three.
-	data, err := os.ReadFile(filepath.Join(os.Getenv("AGENTVAULT_HOME"), "audit.jsonl"))
+	// Audit store must contain all three events.
+	if err := sup.logger.Flush(5 * time.Second); err != nil {
+		t.Fatal(err)
+	}
+	recs, err := sup.store.Query(audit.QueryOpts{SessionID: sup.SessionID()})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if n := strings.Count(strings.TrimSpace(string(data)), "\n"); n != 2 {
-		t.Fatalf("want 3 audit lines, got %d", n+1)
+	if len(recs) != 3 {
+		t.Fatalf("want 3 audit records, got %d", len(recs))
 	}
 }
 

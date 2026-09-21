@@ -18,11 +18,11 @@ and recorded in the tamper-evident audit log.`,
 		Example: "  agentvault run -- opencode\n  agentvault run -- bash",
 		Args:    cobra.MinimumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			pol, _, err := config.Load(flagConfig)
+			pol, raw, err := config.Load(flagConfig)
 			if err != nil {
 				return err
 			}
-			sup, err := supervisor.New(pol)
+			sup, err := supervisor.New(pol, raw)
 			if err != nil {
 				return err
 			}

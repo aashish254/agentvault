@@ -38,7 +38,7 @@ audit:
 
 func TestRunBlocksDestructiveCommand(t *testing.T) {
 	h := New(t, "") // policy written below (needs vault path first)
-	policy := strings.ReplaceAll(e2ePolicy, "AUDIT_PATH_PLACEHOLDER", h.VaultDir+"/audit.jsonl")
+	policy := strings.ReplaceAll(e2ePolicy, "AUDIT_PATH_PLACEHOLDER", h.VaultDir+"/audit.db")
 	writePolicyFile(t, h.Policy, policy)
 
 	// The victim directory must survive the agent's rm -rf.
@@ -102,6 +102,12 @@ func TestRunBlocksDestructiveCommand(t *testing.T) {
 		if verdicts[i] != w {
 			t.Fatalf("audit[%d] = %q, want %q", i, verdicts[i], w)
 		}
+	}
+
+	// 6. The hash chain verifies and the session signature is valid.
+	vcode, vout := h.Verify()
+	if vcode != 0 || !strings.Contains(vout, "OK") {
+		t.Fatalf("verify = %d: %s", vcode, vout)
 	}
 }
 

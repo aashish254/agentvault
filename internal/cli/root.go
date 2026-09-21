@@ -77,7 +77,9 @@ everything they did.`,
 		newPolicyCmd(),
 		newRunCmd(),
 		newShimCmd(),
-		// log, init, verify, approve, daemon land in Weeks 3–6.
+		newVerifyCmd(),
+		newLogCmd(),
+		// init, approve, daemon land in Weeks 4–6.
 	)
 	return root
 }

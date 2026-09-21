@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"time"
 
 	"github.com/aashish/agentvault/internal/audit"
 	"github.com/aashish/agentvault/internal/config"
@@ -21,7 +22,8 @@ import (
 type Supervisor struct {
 	cfg      *config.Policy
 	engine   policy.Engine
-	logger   audit.Logger
+	store    *audit.Store
+	logger   *audit.Logger
 	listener *listener
 	session  string
 
@@ -30,8 +32,9 @@ type Supervisor struct {
 	approvalAvailable bool
 }
 
-// New builds the supervisor: compiles the policy, opens the audit log.
-func New(cfg *config.Policy) (*Supervisor, error) {
+// New builds the supervisor: compiles the policy, opens the audit store,
+// and begins a session attributed to the exact policy bytes.
+func New(cfg *config.Policy, policyRaw []byte) (*Supervisor, error) {
 	eng, err := policy.NewEngine(cfg)
 	if err != nil {
 		return nil, err
@@ -40,15 +43,38 @@ func New(cfg *config.Policy) (*Supervisor, error) {
 	if logPath == "" {
 		return nil, fmt.Errorf("supervisor: audit.path is required")
 	}
-	lg, err := audit.OpenJSONL(logPath)
+	store, err := audit.Open(logPath)
 	if err != nil {
+		return nil, err
+	}
+	// Retention: archive-then-delete sessions older than the cutoff.
+	// Tampered sessions are never deleted; warnings surface on stderr.
+	if cfg.Audit.RetentionDays > 0 {
+		_, warnings, rerr := store.Retain(cfg.Audit.RetentionDays)
+		if rerr != nil {
+			_ = store.Close()
+			return nil, fmt.Errorf("supervisor: retention: %w", rerr)
+		}
+		for _, w := range warnings {
+			fmt.Fprintln(os.Stderr, "agentvault:", w)
+		}
+	}
+	sessionID := event.NewID()
+	if err := store.BeginSession(sessionID, cfg.Agent.Name, cfg.Agent.Command, policyRaw); err != nil {
+		_ = store.Close()
+		return nil, err
+	}
+	lg, err := audit.NewLogger(store, logPath+".overflow.jsonl")
+	if err != nil {
+		_ = store.Close()
 		return nil, err
 	}
 	return &Supervisor{
 		cfg:     cfg,
 		engine:  eng,
+		store:   store,
 		logger:  lg,
-		session: event.NewID(),
+		session: sessionID,
 	}, nil
 }
 
@@ -94,8 +120,8 @@ func (s *Supervisor) Run(ctx context.Context, argv []string) (int, error) {
 
 	code := waitChild(child)
 
-	// 5. Flush audit, cleanup.
-	_ = s.logger.Flush(0)
+	// 5. Flush audit, seal the session chain, cleanup.
+	_ = s.logger.Flush(5 * time.Second)
 	return code, nil
 }
 
@@ -115,8 +141,17 @@ func (s *Supervisor) Evaluate(e event.Event) event.Verdict {
 	return v
 }
 
-// Close releases resources.
-func (s *Supervisor) Close() error { return s.logger.Close() }
+// Close flushes the logger and seals + closes the store.
+func (s *Supervisor) Close() error {
+	_ = s.logger.Flush(5 * time.Second)
+	if err := s.logger.Close(); err != nil {
+		return err
+	}
+	return s.store.Close() // SignAndClose happens inside
+}
+
+// Store exposes the audit store (for verify/log within this process).
+func (s *Supervisor) Store() *audit.Store { return s.store }
 
 // Exit codes shared with cli (kept here to avoid an import cycle).
 const (

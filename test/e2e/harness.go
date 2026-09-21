@@ -67,14 +67,33 @@ func (h *Harness) Run(argv ...string) (output string, exitCode int) {
 	return "", -1
 }
 
-// AuditLog returns the raw JSONL audit log contents.
+// AuditLog returns the audit records via `agentvault log --export json`
+// (exercising the CLI like a user would, not poking the DB directly).
 func (h *Harness) AuditLog() string {
 	h.T.Helper()
-	b, err := os.ReadFile(filepath.Join(h.VaultDir, "audit.jsonl"))
+	cmd := exec.Command(h.Bin, "-c", h.Policy, "log", "--export", "json")
+	cmd.Env = append(os.Environ(), "AGENTVAULT_HOME="+h.VaultDir)
+	out, err := cmd.CombinedOutput()
 	if err != nil {
-		h.T.Fatalf("read audit log: %v", err)
+		h.T.Fatalf("log --export: %v\n%s", err, out)
 	}
-	return string(b)
+	return string(out)
+}
+
+// Verify runs `agentvault verify` and returns (exitCode, output).
+func (h *Harness) Verify() (int, string) {
+	h.T.Helper()
+	cmd := exec.Command(h.Bin, "-c", h.Policy, "verify")
+	cmd.Env = append(os.Environ(), "AGENTVAULT_HOME="+h.VaultDir)
+	out, err := cmd.CombinedOutput()
+	if err == nil {
+		return 0, string(out)
+	}
+	if ee, ok := err.(*exec.ExitError); ok {
+		return ee.ExitCode(), string(out)
+	}
+	h.T.Fatalf("verify failed to execute: %v\n%s", err, out)
+	return -1, ""
 }
 
 // repoRoot walks up from the test file to the module root.
