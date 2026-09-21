@@ -775,4 +775,4 @@ Legend: **AC** = acceptance criteria. Every week ends with a tagged release (`v0
 | YAML/CEL complexity scares users | `init` wizard writes a sane default; `policy check` gives exact line numbers; ship 5 copy-paste "recipe" policies in docs. |
 | Approval fatigue | Memoized "allow this rule"; rate budget as a backstop instead of per-action prompts. |
 
-**v0.1 non-goals (explicit):** Windows support, TLS content inspection, kernel sandboxing, spend enforcement, multi-user/team policies, any cloud service. Each is a Phase 2+ item with the config schema already forward-compatible.
+**v0.1 non-goals (explicit):** TLS content inspection, kernel sandboxing, spend enforcement, multi-user/team policies, any cloud service. Each is a Phase 2+ item with the config schema already forward-compatible. **Windows IS supported in v0.1** (amended): shims are `.cmd` wrappers instead of symlinks, IPC is loopback TCP with a session token instead of a unix socket, and signal forwarding is Interrupt-only.

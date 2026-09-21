@@ -4,8 +4,12 @@ package cli
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 
 	"github.com/spf13/cobra"
+
+	"github.com/aashish/agentvault/internal/paths"
+	"github.com/aashish/agentvault/internal/shim"
 )
 
 // Exit codes (contract from SPEC §4.1).
@@ -26,11 +30,30 @@ var (
 
 // Execute runs the root command and returns the process exit code.
 func Execute() int {
+	exitCode = 0
 	if err := newRootCmd().Execute(); err != nil {
+		if err == errShimExit {
+			return exitCode
+		}
 		fmt.Fprintln(os.Stderr, "agentvault:", err)
 		return ExitPolicyFailure
 	}
-	return ExitOK
+	return exitCode
+}
+
+// ShimDispatch implements the busybox pattern for unix shims: when the
+// binary is invoked through a symlink whose name is not "agentvault",
+// it behaves as that shimmed binary. Returns (handled, exitCode).
+func ShimDispatch() (bool, int) {
+	base := filepath.Base(os.Args[0])
+	if base == "agentvault" || base == "agentvault.exe" || base == "main" {
+		return false, 0
+	}
+	// Only treat argv[0] as a shim invocation if it names a real shim.
+	if _, err := os.Lstat(filepath.Join(paths.Shims(), base)); err != nil {
+		return false, 0
+	}
+	return true, shim.Handle(base, os.Args[1:])
 }
 
 // newRootCmd builds a fresh command tree. Kept separate from Execute so
@@ -52,7 +75,9 @@ everything they did.`,
 
 	root.AddCommand(
 		newPolicyCmd(),
-		// run, log, init, verify, approve, daemon, __shim land in Weeks 2–6.
+		newRunCmd(),
+		newShimCmd(),
+		// log, init, verify, approve, daemon land in Weeks 3–6.
 	)
 	return root
 }

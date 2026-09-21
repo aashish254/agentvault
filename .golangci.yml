@@ -3,6 +3,13 @@ version: "2"
 linters:
   enable:
     - gosec
+  exclusions:
+    rules:
+      # Test code intentionally spawns processes and writes exec stubs.
+      - path: _test\.go
+        linters: [gosec]
+      - path: test/e2e
+        linters: [gosec]
   settings:
     errcheck:
       # CLI output to cobra writers: failure mode is a broken pipe,

@@ -19,14 +19,24 @@ AI agents now run with access to your shell, files, and API keys. AgentVault ans
 
 ## Status
 
-Week 1 of the [8-week roadmap](docs/SPEC.md): policy engine (CEL + glob matchers), `policy check` / `policy test`, full test suite. Interception channels land Weeks 2–6.
+Weeks 1–2 of the [8-week roadmap](docs/SPEC.md) are done:
+
+- ✅ Policy engine (CEL + glob/host matchers), `policy check` / `policy test`
+- ✅ `agentvault run` — supervisor + PATH shims + live audit log (macOS, Linux, Windows*)
+- ⏳ Approvals (Telegram/TUI), MCP proxy, egress proxy, TUI — Weeks 3–6
+
+*Windows: shims are `.cmd` wrappers; IPC is loopback TCP with a session token.
 
 ```bash
 cp agentvault.example.yaml agentvault.yaml
 agentvault policy check
 agentvault policy test internal/policy/testdata/fixture_rm_rf.json
 # → verdict=deny rule=block-destructive-shell
+
+agentvault run -- bash   # inside: rm → blocked (exit 126), audited
 ```
+
+Platforms: macOS (arm64/amd64), Linux (arm64/amd64), Windows (arm64/amd64).
 
 ## License
 
