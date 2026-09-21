@@ -5,8 +5,11 @@ package e2e
 import (
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/aashish/agentvault/internal/event"
 )
 
 // sandboxPolicy: shim rm/ls, sandbox on, workdir writes allowed, ~/.ssh denied.
@@ -37,11 +40,21 @@ func TestKernelSandboxBlocksDirectSyscall(t *testing.T) {
 	policy = strings.ReplaceAll(policy, "WORKDIR_GLOB", h.WorkDir+"/**")
 	writePolicyFile(t, h.Policy, policy)
 
-	// Victims: a file in workdir (protected from writes? no — workdir is writable,
-	// so rm must fail at the SHIM layer) and a file OUTSIDE the workdir
-	// (kernel must refuse the write/delete even if /bin/rm is called directly).
-	outside := t.TempDir() // not under WorkDir
-	victim := outside + "/victim.txt"
+	// Victims: a file in workdir (shim must block rm) and a file in a
+	// directory that is NOT writable under the sandbox (kernel must refuse
+	// even a direct /bin/rm). Note: t.TempDir() is unusable here — macOS
+	// per-user temp (/var/folders/...) is writable by design, so we use a
+	// fresh dir directly under $HOME (home root is not writable).
+	home, err := os.UserHomeDir()
+	if err != nil {
+		t.Fatal(err)
+	}
+	outside := filepath.Join(home, "av-sandbox-test-"+event.NewID()[:8])
+	victim := filepath.Join(outside, "victim.txt")
+	if err := os.MkdirAll(outside, 0o750); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = os.RemoveAll(outside) })
 	if err := os.WriteFile(victim, []byte("precious"), 0o600); err != nil {
 		t.Fatal(err)
 	}
