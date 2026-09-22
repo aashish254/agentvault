@@ -21,7 +21,6 @@ func newPolicyCmd() *cobra.Command {
 	return cmd
 }
 
-
 // resolveConfig returns the config path to use: an explicit --config flag
 // wins; otherwise git-style discovery (cwd upward, then home).
 func resolveConfig() string {

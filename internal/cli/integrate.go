@@ -1,6 +1,7 @@
 package cli
 
 import (
+	_ "embed"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -11,9 +12,10 @@ import (
 
 // integrateTarget describes one supported agent's integration surface.
 type integrateTarget struct {
-	name    string              // display name
-	config  func(dir string) string // config file path for this agent
+	name    string                               // display name
+	config  func(dir string) string              // config file path for this agent
 	mutate  func(cfg map[string]any, bin string) // apply agentvault changes
+	install func(dir, bin string)                // install hook plugins
 }
 
 func newIntegrateCmd() *cobra.Command {
@@ -49,14 +51,16 @@ func integrateTargets() map[string]integrateTarget {
 			config: func(dir string) string {
 				return filepath.Join(dir, "opencode.json")
 			},
-			mutate: mutateOpenCode,
+			mutate:  mutateOpenCode,
+			install: installOpenCodePlugin,
 		},
 		"openclaw": {
 			name: "OpenClaw",
 			config: func(dir string) string {
 				return filepath.Join(dir, "opencode.json") // openclaw shares the format
 			},
-			mutate: mutateOpenCode,
+			mutate:  mutateOpenCode,
+			install: installOpenCodePlugin,
 		},
 	}
 }
@@ -90,18 +94,23 @@ func integrate(cmd *cobra.Command, t integrateTarget, dir, bin string) error {
 	cfgPath := t.config(dir)
 
 	cfg := map[string]any{}
+	// #nosec G304 -- the config path derives from the user-chosen project dir; reading it is the point.
 	if raw, err := os.ReadFile(cfgPath); err == nil {
 		if err := json.Unmarshal(raw, &cfg); err != nil {
 			return fmt.Errorf("existing %s is not valid JSON: %w", cfgPath, err)
 		}
 	}
 	t.mutate(cfg, bin)
+	if t.install != nil {
+		t.install(dir, bin)
+	}
 
 	out, err := json.MarshalIndent(cfg, "", "  ")
 	if err != nil {
 		return err
 	}
 	// Backup an existing config before overwriting.
+	// #nosec G304 G703 -- cfgPath is the agent's own config file in the user-chosen dir.
 	if raw, err := os.ReadFile(cfgPath); err == nil {
 		_ = os.WriteFile(cfgPath+".agentvault-backup", raw, 0o600)
 	}
@@ -114,4 +123,22 @@ func integrate(cmd *cobra.Command, t integrateTarget, dir, bin string) error {
 	fmt.Fprintf(cmd.OutOrStdout(), "  - backup: %s.agentvault-backup\n", cfgPath)
 	fmt.Fprintf(cmd.OutOrStdout(), "\nRestart the agent (inside 'agentvault run') to pick it up.\n")
 	return nil
+}
+
+//go:embed plugin/opencode/agentvault.ts
+var openCodePluginTS string
+
+// installOpenCodePlugin writes the AgentVault plugin into the project's
+// .opencode/plugins/ dir. OpenCode auto-loads it at startup and every
+// tool call (bash, read, write, edit) flows through the session socket.
+func installOpenCodePlugin(dir, bin string) {
+	plugDir := filepath.Join(dir, ".opencode", "plugins")
+	if err := os.MkdirAll(plugDir, 0o750); err != nil {
+		fmt.Fprintf(os.Stderr, "agentvault: plugin dir: %v\n", err)
+		return
+	}
+	p := filepath.Join(plugDir, "agentvault.ts")
+	if err := os.WriteFile(p, []byte(openCodePluginTS), 0o600); err != nil {
+		fmt.Fprintf(os.Stderr, "agentvault: plugin write: %v\n", err)
+	}
 }
