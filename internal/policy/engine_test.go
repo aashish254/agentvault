@@ -152,3 +152,26 @@ func TestPortZeroEventAgainstEgressRule(t *testing.T) {
 		t.Fatalf("got %s", v.Effect)
 	}
 }
+
+func TestDefaultPolicyBenignAgentTools(t *testing.T) {
+	// Dogfooding found opencode's todowrite blocked by the fail-closed
+	// default (mcp.tool, no matching rule). The shipped default policy must
+	// allow agent bookkeeping tools while unknown tools still hit deny.
+	eng, err := NewEngine(defaultPolicyForTest(t))
+	if err != nil {
+		t.Fatalf("default policy must compile: %v", err)
+	}
+	for _, tool := range []string{"todowrite", "todoread", "task", "question"} {
+		v := eng.Evaluate(event.Event{
+			Source: "opencode-plugin", Action: event.ActionMCPTool, Tool: tool, Cwd: "/work",
+		})
+		if v.Effect != event.Allow || v.RuleName != "allow-benign-agent-tools" {
+			t.Errorf("tool %s: got %s (rule %q), want allow via allow-benign-agent-tools", tool, v.Effect, v.RuleName)
+		}
+	}
+	// Unknown tool: fail-closed default still applies.
+	v := eng.Evaluate(event.Event{Source: "opencode-plugin", Action: event.ActionMCPTool, Tool: "delete_file", Cwd: "/work"})
+	if v.Effect != event.Deny {
+		t.Errorf("unknown tool: got %s, want deny", v.Effect)
+	}
+}

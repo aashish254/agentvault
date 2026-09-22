@@ -52,6 +52,19 @@ func DefaultPolicy() *Policy {
 				Effect: EffectAllow,
 			},
 			{
+				// Agent bookkeeping tools (todo lists, subtask orchestration)
+				// touch no files and no network — without this rule the
+				// fail-closed default breaks agents like opencode that rely
+				// on them (found by dogfooding).
+				Name: "allow-benign-agent-tools",
+				Match: Match{
+					Action: []ActionType{ActionMCPTool},
+					CEL:    `event.tool in ["todowrite","todoread","task","question"]`,
+				},
+				Effect:  EffectAllow,
+				Message: "Agent bookkeeping tools are always allowed.",
+			},
+			{
 				Name: "git-push-ask",
 				Match: Match{
 					Action: []ActionType{ActionShell},

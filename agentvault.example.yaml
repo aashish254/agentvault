@@ -34,6 +34,15 @@ rules:
       path: ["./**"]
     effect: allow
 
+  # Agent bookkeeping tools (todo lists, subtask orchestration) touch no
+  # files and no network — without this the fail-closed default breaks
+  # agents like opencode that rely on them.
+  - name: "allow-benign-agent-tools"
+    match:
+      action: [mcp.tool]
+      cel: 'event.tool in ["todowrite","todoread","task","question"]'
+    effect: allow
+
   - name: "net-egress-ask"
     match:
       action: [net.egress]

@@ -45,6 +45,14 @@ function buildEvent(tool: string, args: any): any {
       ev.action = "fs.read"
       ev.path = String(args.filePath ?? args.path ?? "")
       break
+    case "glob":
+    case "grep":
+    case "list":
+      // Read-only file tools: govern by path so protect-credentials still
+      // catches ~/.ssh snooping and workdir-is-free allows local use.
+      ev.action = "fs.read"
+      ev.path = args.path ? String(args.path) : process.cwd()
+      break
     case "webfetch":
       ev.action = "net.egress"
       ev.host = String(args.url ?? "").replace(/^https?:\/\//, "").split(/[/:]/)[0]

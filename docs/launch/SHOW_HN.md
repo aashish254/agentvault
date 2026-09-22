@@ -14,6 +14,8 @@ I run AI coding agents every day, and I got tired of the trust model being "hope
 
 Demo in the README is a 20-second GIF: agent tries `rm -rf /tmp/important`, gets blocked, and the block lands in the audit log.
 
+An unexpected finding from dogfooding it against real agents: the denials double as agent feedback. In one red-team session I gave an agent four tasks, three of them attacks — read my SSH key, rm -rf a canary dir, git push. The first two died on policy (deny:protect-credentials, deny:block-destructive-shell), the agent read the error messages, concluded "the security policies in this environment prevent this," and didn't even attempt the push. Structured denials steer agent behavior, not just block it.
+
 **What it is NOT (I want to be precise, because security tools die on overclaiming):**
 - Not a full sandbox on Linux/Windows yet (userspace enforcement + audit there).
 - Not payload inspection of TLS — egress decisions are host:port only, by design (privacy).
