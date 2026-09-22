@@ -1,0 +1,110 @@
+{
+  "generated": "2026-09-22T18:44:31Z",
+  "os": "darwin/arm64",
+  "internet": true,
+  "tools": [
+    "no-sandbox",
+    "agentvault",
+    "srt",
+    "codex",
+    "docker"
+  ],
+  "cases": [
+    {
+      "id": "L-01",
+      "name": "read project source (cat/grep)",
+      "net": false,
+      "results": {
+        "agentvault": "ok",
+        "codex": "ok",
+        "docker": "ok",
+        "no-sandbox": "ok",
+        "srt": "ok"
+      }
+    },
+    {
+      "id": "L-02",
+      "name": "edit a source file (append)",
+      "net": false,
+      "results": {
+        "agentvault": "ok",
+        "codex": "ok",
+        "docker": "ok",
+        "no-sandbox": "ok",
+        "srt": "blocked"
+      }
+    },
+    {
+      "id": "L-03",
+      "name": "create build output (mkdir + artifact)",
+      "net": false,
+      "results": {
+        "agentvault": "ok",
+        "codex": "ok",
+        "docker": "ok",
+        "no-sandbox": "ok",
+        "srt": "blocked"
+      }
+    },
+    {
+      "id": "L-04",
+      "name": "git status",
+      "net": false,
+      "results": {
+        "agentvault": "ok",
+        "codex": "ok",
+        "docker": "skipped",
+        "no-sandbox": "ok",
+        "srt": "ok"
+      }
+    },
+    {
+      "id": "L-05",
+      "name": "git commit",
+      "net": false,
+      "results": {
+        "agentvault": "ok",
+        "codex": "ok",
+        "docker": "skipped",
+        "no-sandbox": "ok",
+        "srt": "blocked"
+      }
+    },
+    {
+      "id": "L-06",
+      "name": "run the project test script",
+      "net": false,
+      "results": {
+        "agentvault": "ok",
+        "codex": "ok",
+        "docker": "ok",
+        "no-sandbox": "ok",
+        "srt": "ok"
+      }
+    },
+    {
+      "id": "L-07",
+      "name": "fetch package metadata (https)",
+      "net": true,
+      "results": {
+        "agentvault": "ok",
+        "codex": "blocked",
+        "docker": "blocked",
+        "no-sandbox": "ok",
+        "srt": "blocked"
+      }
+    },
+    {
+      "id": "L-08",
+      "name": "git push to a remote (https)",
+      "net": true,
+      "results": {
+        "agentvault": "ok",
+        "codex": "blocked",
+        "docker": "skipped",
+        "no-sandbox": "ok",
+        "srt": "blocked"
+      }
+    }
+  ]
+}

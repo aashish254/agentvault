@@ -68,6 +68,10 @@ The red-team battery includes attacks AgentVault is *expected* to stop (shim byp
 
 ![103-attack corpus chart](redteam/CORPUS_CHART.png)
 
+The chart has two panels because "attacks blocked" alone is a gameable metric. The right panel is the **legitimate-work battery** ([full matrix](redteam/LEGIT_RESULTS.md)): 8 everyday dev operations — read a source file, edit it, create a build directory, `git status`, `git commit`, run the project tests, fetch a URL, `git push` — executed under the *same* tools with the *same* default configs. A sandbox can only be both safe and useful if it tops both axes.
+
+The honest finding in the srt column: srt ties AgentVault at 103/103 — but its zero-config default (`srt sh`, exactly as the corpus invokes it) gets there by denying **all** writes and **all** network. The agent cannot edit a file, `mkdir`, commit, or fetch a package: **3/8 legitimate operations**. (Claude Code layers its own permission prompts and generated srt settings on top; bare srt has no approval or audit layer of its own.) AgentVault reaches the same 103/103 while allowing **8/8** — risky-but-legitimate actions escalate to a human via `require_approval` (terminal, macOS popup, Telegram) instead of hitting a static wall. In the battery the harness auto-approves, the scripted equivalent of tapping "Allow" on your phone.
+
 What each category costs you if it lands:
 
 - **destructive** — working tree and user files destroyed; irreversible data loss.

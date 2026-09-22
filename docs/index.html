@@ -43,7 +43,7 @@
   <p class="note">One command. Checksum-verified binary from GitHub Releases. macOS + Linux, amd64 + arm64. No daemon, no dependencies.</p>
 
   <div class="grid">
-    <div class="card"><b>103/103 attacks blocked</b><p>Full corpus: destructive, credential-theft, exfiltration, evasion, persistence — every variant stopped in a real measured run. Docker let 88 through on a mounted directory.</p></div>
+    <div class="card"><b>103/103 attacks blocked — and work still works</b><p>Every corpus variant stopped in a real measured run, <i>and</i> 8/8 everyday dev ops allowed via one-tap approvals. srt ties on attacks only by blocking all writes and network (3/8 ops); Docker let 88 attacks through.</p></div>
     <div class="card"><b>Approve from your phone</b><p>Telegram, native macOS popup, or terminal. Timeouts fail closed — the agent waits, nothing runs.</p></div>
     <div class="card"><b>Prove what happened</b><p>Hash-chained SQLite audit log, Ed25519-sealed. <code>agentvault verify</code> detects tampering.</p></div>
     <div class="card"><b>Any agent</b><p>Claude Code, OpenCode, OpenClaw, shell scripts — one policy, one inbox, one log across all of them.</p></div>
@@ -54,8 +54,8 @@
   <p class="note" style="margin-top:10px">Real <code>make compare</code> output, 2026-09-22. Reproduce: <code>go test -v -run TestCompareMatrix ./test/redteam/</code></p>
 
   <h2>103-attack corpus</h2>
-  <img class="chart" src="redteam/CORPUS_CHART.png" alt="103 real attack variants measured per tool — AgentVault 103/103 blocked, srt 103/103, Docker 4/92">
-  <p class="note" style="margin-top:10px">13 destructive · 52 credential-theft · 10 exfiltration · 16 evasion · 12 persistence — each attack proven to succeed unsandboxed first, then measured per tool. Reproduce: <code>make corpus</code> · <a href="https://github.com/aashish254/agentvault/blob/main/docs/redteam/CORPUS_RESULTS.md">full matrix</a></p>
+  <img class="chart" src="redteam/CORPUS_CHART.png" alt="103 real attack variants plus 8 legitimate dev ops measured per tool — AgentVault 103/103 blocked and 8/8 allowed, the only tool maxing both axes; srt 103/103 blocked but 3/8 ops allowed, codex 22/103, Docker 4/92">
+  <p class="note" style="margin-top:10px">13 destructive · 52 credential-theft · 10 exfiltration · 16 evasion · 12 persistence — each attack proven to succeed unsandboxed first, then measured per tool. Right panel: 8 everyday dev ops (read, edit, build, commit, push, fetch) under the same default configs — security that blocks all work gets disabled. Reproduce: <code>make corpus</code> · <a href="https://github.com/aashish254/agentvault/blob/main/docs/redteam/CORPUS_RESULTS.md">attack matrix</a> · <a href="https://github.com/aashish254/agentvault/blob/main/docs/redteam/LEGIT_RESULTS.md">legit-work matrix</a></p>
 
   <h2>Links</h2>
   <p class="links">

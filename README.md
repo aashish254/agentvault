@@ -47,11 +47,11 @@ Measured against other sandboxes (real `make compare` run, default configs — r
 
 ![AgentVault vs srt vs Docker — measured attack outcomes](docs/redteam/COMPARE_CHART.png)
 
-And at corpus scale — **103 real executed attack variants** (13 destructive, 52 credential-theft, 10 exfiltration, 16 evasion, 12 persistence), each verified to actually succeed unsandboxed, measured under every tool on the host (`make corpus` → [docs/redteam/CORPUS_RESULTS.md](docs/redteam/CORPUS_RESULTS.md)):
+And at corpus scale — **103 real executed attack variants** (13 destructive, 52 credential-theft, 10 exfiltration, 16 evasion, 12 persistence), each verified to actually succeed unsandboxed, measured under every tool on the host — plus the axis most sandbox benchmarks hide: **8 everyday dev operations** (read, edit, build, commit, push, fetch) under the *same* tools and the *same* default configs (`make corpus` → [attack matrix](docs/redteam/CORPUS_RESULTS.md) · [legit-work matrix](docs/redteam/LEGIT_RESULTS.md)):
 
-![103-attack corpus: AgentVault 103/103 blocked, srt 103/103, Docker 4/92](docs/redteam/CORPUS_CHART.png)
+![103-attack corpus + legitimate-work battery: AgentVault 103/103 attacks blocked and 8/8 dev ops allowed — the only tool maxing both axes](docs/redteam/CORPUS_CHART.png)
 
-AgentVault and Anthropic's srt both blocked 103/103. Docker blocked only network egress — every destructive, credential-theft, and persistence attack succeeded against the mounted working directory under defaults, because a container is not a sandbox for things you mount into it.
+Only AgentVault tops both axes: **103/103 attacks blocked *and* 8/8 legitimate operations allowed** — `git push` and network egress escalate to `require_approval` (terminal, macOS popup, or Telegram) instead of hitting a static deny. Anthropic's srt also blocked 103/103, but its zero-config default gets there by blocking *all* writes and *all* network: the agent can't edit a file, mkdir, commit, or fetch a package (3/8 legitimate ops). Codex CLI's default sandbox blocked 22/103 — full-disk reads and in-project destruction are outside its threat model. Docker blocked 4/92 — a container with a writable bind mount is not a sandbox.
 
 
 ## Install
