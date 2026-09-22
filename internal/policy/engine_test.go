@@ -161,7 +161,7 @@ func TestDefaultPolicyBenignAgentTools(t *testing.T) {
 	if err != nil {
 		t.Fatalf("default policy must compile: %v", err)
 	}
-	for _, tool := range []string{"todowrite", "todoread", "task", "question"} {
+	for _, tool := range []string{"todowrite", "todoread", "task", "question", "exitplanmode"} {
 		v := eng.Evaluate(event.Event{
 			Source: "opencode-plugin", Action: event.ActionMCPTool, Tool: tool, Cwd: "/work",
 		})

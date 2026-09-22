@@ -52,14 +52,15 @@ func DefaultPolicy() *Policy {
 				Effect: EffectAllow,
 			},
 			{
-				// Agent bookkeeping tools (todo lists, subtask orchestration)
-				// touch no files and no network — without this rule the
-				// fail-closed default breaks agents like opencode that rely
-				// on them (found by dogfooding).
+				// Agent bookkeeping tools (todo lists, plan mode, subtask
+				// orchestration) touch no files and no network — without
+				// this rule the fail-closed default breaks agents like
+				// opencode and Claude Code (found by dogfooding). Tool
+				// names are matched lowercased; integrations normalize.
 				Name: "allow-benign-agent-tools",
 				Match: Match{
 					Action: []ActionType{ActionMCPTool},
-					CEL:    `event.tool in ["todowrite","todoread","task","question"]`,
+					CEL:    `event.tool in ["todowrite","todoread","task","question","exitplanmode"]`,
 				},
 				Effect:  EffectAllow,
 				Message: "Agent bookkeeping tools are always allowed.",
@@ -77,7 +78,8 @@ func DefaultPolicy() *Policy {
 		Approvals: ApprovalsCfg{
 			Timeout: 60 * time.Second,
 			Channels: ChannelsCfg{
-				TTY: TTYCfg{Enabled: true},
+				TTY:   TTYCfg{Enabled: true},
+				MacOS: MacOSCfg{Enabled: true}, // native popup; NewMacOS self-disables off darwin
 			},
 		},
 		Shims: ShimsCfg{

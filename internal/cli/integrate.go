@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/spf13/cobra"
 )
@@ -16,12 +17,13 @@ type integrateTarget struct {
 	config  func(dir string) string              // config file path for this agent
 	mutate  func(cfg map[string]any, bin string) // apply agentvault changes
 	install func(dir, bin string)                // install hook plugins
+	notes   []string                             // post-install report lines
 }
 
 func newIntegrateCmd() *cobra.Command {
 	var dir string
 	cmd := &cobra.Command{
-		Use:   "integrate <opencode|openclaw>",
+		Use:   "integrate <opencode|openclaw|claude>",
 		Short: "Wire an agent's file tools through AgentVault (MCP channel)",
 		Long: `Writes the agent's config so that file edits route through an
 AgentVault-wrapped MCP filesystem server instead of the agent's
@@ -35,7 +37,7 @@ are disabled; read-only tools stay enabled.`,
 			}
 			t, ok := integrateTargetsMap[args[0]]
 			if !ok {
-				return fmt.Errorf("unknown agent %q (supported: opencode, openclaw)", args[0])
+				return fmt.Errorf("unknown agent %q (supported: opencode, openclaw, claude)", args[0])
 			}
 			return integrate(cmd, t, dir, bin)
 		},
@@ -45,6 +47,11 @@ are disabled; read-only tools stay enabled.`,
 }
 
 func integrateTargets() map[string]integrateTarget {
+	openCodeNotes := []string{
+		"built-in write/edit/patch tools DISABLED",
+		"file ops now flow through agentvault_fs (MCP) → policy + audit",
+		"plugin gates every tool call (bash/read/write/edit/webfetch/...) via the session socket",
+	}
 	return map[string]integrateTarget{
 		"opencode": {
 			name: "OpenCode",
@@ -53,6 +60,7 @@ func integrateTargets() map[string]integrateTarget {
 			},
 			mutate:  mutateOpenCode,
 			install: installOpenCodePlugin,
+			notes:   openCodeNotes,
 		},
 		"openclaw": {
 			name: "OpenClaw",
@@ -61,6 +69,19 @@ func integrateTargets() map[string]integrateTarget {
 			},
 			mutate:  mutateOpenCode,
 			install: installOpenCodePlugin,
+			notes:   openCodeNotes,
+		},
+		"claude": {
+			name: "Claude Code",
+			config: func(dir string) string {
+				return filepath.Join(dir, ".claude", "settings.json")
+			},
+			mutate: mutateClaude,
+			notes: []string{
+				"PreToolUse hook installed → EVERY tool call (Bash, Read, Write, Edit, WebFetch, MCP tools) is policy-checked",
+				"blocked tools get the policy message back as agent feedback",
+				"inside 'agentvault run', shims + egress + Seatbelt still apply underneath",
+			},
 		},
 	}
 }
@@ -85,6 +106,32 @@ func mutateOpenCode(cfg map[string]any, bin string) {
 			"enabled": true,
 		},
 	}
+}
+
+// mutateClaude: install the PreToolUse hook in Claude Code's project
+// settings. Every tool call (Bash, Read, Write, MCP tools, ...) pipes
+// through `agentvault hook claude`; exit 2 blocks. Existing hooks are
+// preserved; ours is appended once (idempotent).
+func mutateClaude(cfg map[string]any, bin string) {
+	hooks, _ := cfg["hooks"].(map[string]any)
+	if hooks == nil {
+		hooks = map[string]any{}
+	}
+	pre, _ := hooks["PreToolUse"].([]any)
+	for _, e := range pre {
+		if raw, err := json.Marshal(e); err == nil &&
+			strings.Contains(string(raw), "agentvault hook claude") {
+			return // already integrated
+		}
+	}
+	entry := map[string]any{
+		"matcher": "",
+		"hooks": []any{
+			map[string]any{"type": "command", "command": bin + " hook claude"},
+		},
+	}
+	hooks["PreToolUse"] = append(pre, entry)
+	cfg["hooks"] = hooks
 }
 
 func integrate(cmd *cobra.Command, t integrateTarget, dir, bin string) error {
@@ -114,12 +161,16 @@ func integrate(cmd *cobra.Command, t integrateTarget, dir, bin string) error {
 	if raw, err := os.ReadFile(cfgPath); err == nil {
 		_ = os.WriteFile(cfgPath+".agentvault-backup", raw, 0o600)
 	}
+	if err := os.MkdirAll(filepath.Dir(cfgPath), 0o750); err != nil {
+		return err
+	}
 	if err := os.WriteFile(cfgPath, out, 0o600); err != nil {
 		return err
 	}
 	fmt.Fprintf(cmd.OutOrStdout(), "✓ %s configured via %s\n", t.name, cfgPath)
-	fmt.Fprintf(cmd.OutOrStdout(), "  - built-in write/edit/patch tools DISABLED\n")
-	fmt.Fprintf(cmd.OutOrStdout(), "  - file ops now flow through agentvault_fs (MCP) → policy + audit\n")
+	for _, n := range t.notes {
+		fmt.Fprintf(cmd.OutOrStdout(), "  - %s\n", n)
+	}
 	fmt.Fprintf(cmd.OutOrStdout(), "  - backup: %s.agentvault-backup\n", cfgPath)
 	fmt.Fprintf(cmd.OutOrStdout(), "\nRestart the agent (inside 'agentvault run') to pick it up.\n")
 	return nil

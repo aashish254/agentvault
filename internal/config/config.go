@@ -107,6 +107,7 @@ type ApprovalsCfg struct {
 type ChannelsCfg struct {
 	Telegram TelegramCfg `yaml:"telegram"`
 	TTY      TTYCfg      `yaml:"tty"`
+	MacOS    MacOSCfg    `yaml:"macos"`
 }
 
 type TelegramCfg struct {
@@ -116,6 +117,11 @@ type TelegramCfg struct {
 }
 
 type TTYCfg struct {
+	Enabled bool `yaml:"enabled"`
+}
+
+// MacOSCfg gates the native macOS dialog approval channel (osascript).
+type MacOSCfg struct {
 	Enabled bool `yaml:"enabled"`
 }
 

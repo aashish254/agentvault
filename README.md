@@ -1,6 +1,6 @@
 # 🛡 AgentVault
 
-**A runtime permission firewall for AI agents.** Wrap any agent — OpenCode, OpenClaw, a shell script, anything — in declarative YAML rules, one-tap phone approvals, and a tamper-evident audit log of everything it did.
+**A runtime permission firewall for AI agents.** Wrap any agent — Claude Code, OpenCode, OpenClaw, a shell script, anything — in declarative YAML rules, popup/phone approvals, and a tamper-evident audit log of everything it did.
 
 ```bash
 agentvault run -- opencode
@@ -15,7 +15,7 @@ agentvault run -- opencode
 AI agents run with your shell, your files, your API keys. AgentVault answers: *what is the agent doing — and what is it allowed to do?*
 
 - **Deny by default** — credentials, `rm -rf`, unknown egress blocked unless you say otherwise
-- **One-tap approvals** — dangerous actions page your phone (Telegram) or terminal; approve once or approve the rule
+- **One-tap approvals** — dangerous actions pop a native macOS dialog, page your phone (Telegram), or ask on the terminal — each showing *what* the agent wants and *what could go wrong*; approve once or approve the rule
 - **Tamper-evident audit** — every action hash-chained in local SQLite, Ed25519-signed at session close; `agentvault verify` catches any tampering
 - **Single static binary** — no daemons required, no cloud, no telemetry
 
@@ -55,7 +55,7 @@ rules:
     effect: require_approval
 ```
 
-More: [agentvault.example.yaml](agentvault.example.yaml) · Integrations: [OpenCode](docs/integrations/opencode.md) · [OpenClaw](docs/integrations/openclaw.md)
+More: [agentvault.example.yaml](agentvault.example.yaml) · Integrations: [Claude Code](docs/integrations/claude.md) · [OpenCode](docs/integrations/opencode.md) · [OpenClaw](docs/integrations/openclaw.md)
 
 ## Status
 

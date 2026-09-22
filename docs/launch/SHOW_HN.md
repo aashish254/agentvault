@@ -5,10 +5,10 @@ Show HN: AgentVault – a permission firewall for AI coding agents (kernel-enfor
 
 **Body:**
 
-I run AI coding agents every day, and I got tired of the trust model being "hope the agent doesn't rm -rf something or read my ~/.ssh." AgentVault wraps any agent — OpenCode, OpenClaw, a shell script — in a runtime permission firewall:
+I run AI coding agents every day, and I got tired of the trust model being "hope the agent doesn't rm -rf something or read my ~/.ssh." AgentVault wraps any agent — Claude Code, OpenCode, OpenClaw, a shell script — in a runtime permission firewall:
 
 - Declarative YAML policy (allow/deny/require-approval) over four channels: shell commands, MCP tool calls, network egress, and filesystem paths.
-- require_approval pages you on Telegram (or your terminal) — one tap to allow once, allow the rule, or deny. Timed-out requests fail closed.
+- require_approval pops a native macOS dialog, pages you on Telegram, or asks on the terminal — showing what the agent wants AND what could go wrong. One tap: allow once, allow the rule, or deny. Timed-out requests fail closed.
 - Every action is hash-chained into a local SQLite audit log, Ed25519-signed at session close. `agentvault verify` detects tampering with forensic detail.
 - On macOS the same YAML also generates a kernel Seatbelt profile, so even a direct /bin/rm bypassing every shim dies at the syscall layer. (Linux Landlock / Windows Job Objects are the roadmap — today those platforms get the userspace layers + audit.)
 

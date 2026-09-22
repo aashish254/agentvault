@@ -91,6 +91,11 @@ func buildApprovalDaemon(cfg *config.Policy) *approval.Daemon {
 			channels = append(channels, tty)
 		}
 	}
+	if cfg.Approvals.Channels.MacOS.Enabled {
+		if mc := approval.NewMacOS(); mc != nil {
+			channels = append(channels, mc)
+		}
+	}
 	if tg := cfg.Approvals.Channels.Telegram; tg.Enabled {
 		token := os.Getenv(tg.BotTokenEnv)
 		chatID, err := parseChatID(os.Getenv(tg.ChatIDEnv))

@@ -32,7 +32,7 @@ function buildEvent(tool: string, args: any): any {
     case "bash":
       ev.action = "shell.exec"
       ev.cmd = String(args.command ?? "").split(/\s+/)[0] ?? ""
-      ev.argv = [ev.cmd]
+      ev.argv = ev.raw.split(/\s+/).filter(Boolean)
       ev.raw = String(args.command ?? "")
       break
     case "write":

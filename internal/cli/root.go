@@ -84,6 +84,7 @@ everything they did.`,
 		newInitCmd(),
 		newDaemonCmd(),
 		newIntegrateCmd(),
+		newHookCmd(),
 	)
 	return root
 }

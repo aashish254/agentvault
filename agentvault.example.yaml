@@ -40,7 +40,7 @@ rules:
   - name: "allow-benign-agent-tools"
     match:
       action: [mcp.tool]
-      cel: 'event.tool in ["todowrite","todoread","task","question"]'
+      cel: 'event.tool in ["todowrite","todoread","task","question","exitplanmode"]'
     effect: allow
 
   - name: "net-egress-ask"
@@ -60,6 +60,10 @@ approvals:
   timeout: 60s
   channels:
     tty:
+      enabled: true
+    # Native popup dialog (allow once / always allow / deny) — macOS only,
+    # self-disables elsewhere.
+    macos:
       enabled: true
     telegram:
       enabled: false              # flip to true after `agentvault init` sets env vars
