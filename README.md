@@ -43,6 +43,10 @@ make bench     # policy-eval latency gate (<1ms p99)
 
 The battery includes attacks we *don't* stop yet on platforms without a kernel backend — printed as KNOWN GAP, not hidden. Latest matrix: [docs/redteam/RESULTS.md](docs/redteam/RESULTS.md).
 
+Measured against other sandboxes (real `make compare` run, default configs — reproduce with `go test -v -run TestCompareMatrix ./test/redteam/`):
+
+![AgentVault vs srt vs Docker — measured attack outcomes](docs/redteam/COMPARE_CHART.png)
+
 
 ## Install
 

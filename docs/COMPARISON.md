@@ -48,6 +48,8 @@ The red-team battery includes attacks AgentVault is *expected* to stop (shim byp
 
 `make compare` goes further: it executes the same attacks under every sandbox tool installed on your machine (Anthropic's `srt`, Docker, firejail) and records the *measured* outcome per tool — no assertions about competitors, just data. Install the tools and run it yourself; the matrix regenerates with whatever it finds.
 
-![Measured cross-tool results](redteam/COMPARE_RESULTS.png)
+![Measured cross-tool results chart](redteam/COMPARE_CHART.png)
+
+![Measured cross-tool results table](redteam/COMPARE_RESULTS.png)
 
 Latest run (2026-09-22, darwin/arm64, real `srt` 1.0.0 and Docker Desktop installed): AgentVault blocked all three attacks; `srt` and Docker let the destructive delete and credential read through under default configuration (srt blocked the egress). Defaults aren't the whole story — every tool above can be *configured* to block some of these — but defaults are what most users run. [Full results](redteam/COMPARE_RESULTS.md) · [Live opencode-under-AgentVault transcript](redteam/LIVE_DEMO.md)

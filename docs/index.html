@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AgentVault — kernel-enforced safety for AI agents</title>
+<meta name="description" content="One YAML policy, human approvals on your phone, and a tamper-evident audit log for any AI agent. Single static binary, no daemon.">
+<style>
+  :root { --bg:#0d1117; --fg:#e6edf3; --mut:#8b949e; --grn:#3fb950; --acc:#58a6ff; --card:#161b22; --brd:#30363d; }
+  * { box-sizing:border-box; margin:0; }
+  body { background:var(--bg); color:var(--fg); font:16px/1.6 -apple-system,"Segoe UI",Helvetica,Arial,sans-serif; }
+  .wrap { max-width:820px; margin:0 auto; padding:48px 20px 80px; }
+  h1 { font-size:2.6rem; letter-spacing:-.02em; }
+  h1 span { color:var(--grn); }
+  .tag { color:var(--mut); font-size:1.15rem; margin:12px 0 32px; }
+  .install { background:var(--card); border:1px solid var(--brd); border-radius:10px; padding:18px 20px; margin:8px 0 10px; position:relative; }
+  .install code { font:14px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace; color:var(--fg); word-break:break-all; }
+  .install .c2 { margin-top:10px; color:var(--mut); }
+  .copy { position:absolute; top:12px; right:12px; background:var(--brd); color:var(--fg); border:0; border-radius:6px; padding:5px 12px; font-size:12px; cursor:pointer; }
+  .copy:hover { background:#3d444d; }
+  .note { color:var(--mut); font-size:.9rem; margin-bottom:36px; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:14px; margin:28px 0 40px; }
+  .card { background:var(--card); border:1px solid var(--brd); border-radius:10px; padding:16px 18px; }
+  .card b { color:var(--grn); display:block; margin-bottom:6px; }
+  .card p { color:var(--mut); font-size:.92rem; }
+  h2 { font-size:1.3rem; margin:36px 0 14px; }
+  img.chart { width:100%; border:1px solid var(--brd); border-radius:10px; }
+  .links a { color:var(--acc); margin-right:18px; text-decoration:none; }
+  .links a:hover { text-decoration:underline; }
+  footer { margin-top:56px; color:var(--mut); font-size:.85rem; border-top:1px solid var(--brd); padding-top:20px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Agent<span>Vault</span></h1>
+  <p class="tag">Kernel-enforced safety for AI agents. One YAML policy, approvals on your phone, tamper-evident audit log — for <em>any</em> agent, not just one vendor's.</p>
+
+  <div class="install">
+    <button class="copy" onclick="navigator.clipboard.writeText(document.getElementById('cmd').textContent);this.textContent='copied!'">copy</button>
+    <code id="cmd">curl -fsSL https://raw.githubusercontent.com/aashish254/agentvault/main/scripts/install.sh | sh</code>
+    <div class="c2"><code>agentvault init</code> &nbsp;# writes policy, installs shims — done</div>
+  </div>
+  <p class="note">One command. Checksum-verified binary from GitHub Releases. macOS + Linux, amd64 + arm64. No daemon, no dependencies.</p>
+
+  <div class="grid">
+    <div class="card"><b>3/3 attacks blocked</b><p>rm -rf, credential theft, and data exfil all stopped in a real measured run — srt and Docker let 2–3 through under defaults.</p></div>
+    <div class="card"><b>Approve from your phone</b><p>Telegram, native macOS popup, or terminal. Timeouts fail closed — the agent waits, nothing runs.</p></div>
+    <div class="card"><b>Prove what happened</b><p>Hash-chained SQLite audit log, Ed25519-sealed. <code>agentvault verify</code> detects tampering.</p></div>
+    <div class="card"><b>Any agent</b><p>Claude Code, OpenCode, OpenClaw, shell scripts — one policy, one inbox, one log across all of them.</p></div>
+  </div>
+
+  <h2>Measured, not claimed</h2>
+  <img class="chart" src="redteam/COMPARE_CHART.png" alt="AgentVault vs srt vs Docker: measured attack outcomes — AgentVault blocked 3/3">
+  <p class="note" style="margin-top:10px">Real <code>make compare</code> output, 2026-09-22. Reproduce: <code>go test -v -run TestCompareMatrix ./test/redteam/</code></p>
+
+  <h2>Links</h2>
+  <p class="links">
+    <a href="https://github.com/aashish254/agentvault">GitHub</a>
+    <a href="https://github.com/aashish254/agentvault/releases/latest">Download v0.1.0</a>
+    <a href="https://github.com/aashish254/agentvault/blob/main/docs/COMPARISON.md">Full comparison</a>
+    <a href="https://github.com/aashish254/agentvault/blob/main/docs/redteam/LIVE_DEMO.md">Live agent demo transcript</a>
+    <a href="https://github.com/aashish254/agentvault/issues">Issues</a>
+  </p>
+
+  <footer>AgentVault is Apache-2.0. Honest about gaps: Linux/Windows kernel enforcement lands in v0.3 — see SECURITY.md.</footer>
+</div>
+</body>
+</html>
