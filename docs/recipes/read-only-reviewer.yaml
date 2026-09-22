@@ -1,0 +1,41 @@
+# Recipe: read-only-reviewer
+# For agents that review, explain, or audit code: they may read the
+# project and answer questions — but cannot change a single byte,
+# run anything dangerous, or talk to the network.
+version: 1
+defaults: {action: deny}
+approvals: {timeout: 30s}
+
+rules:
+  - name: project-read-only
+    match:
+      action: [fs.read]
+      path: ["./**"]
+    effect: allow
+
+  - name: read-only-shell-tools
+    match:
+      action: [shell.exec]
+      cel: 'event.cmd in ["ls", "cat", "grep", "rg", "find", "head", "tail", "wc", "git"]'
+    effect: allow
+
+  - name: git-read-only
+    match:
+      action: [shell.exec]
+      cel: 'event.cmd == "git" && event.argv.size() > 1 && !(event.argv[1] in ["status", "log", "diff", "show", "blame", "grep"])'
+    effect: deny
+    message: "This agent is read-only."
+
+shims:
+  binaries: [ls, cat, grep, rg, find, head, tail, wc, git, rm, curl, wget]
+
+sandbox: {enabled: true}
+
+egress:
+  listen: "127.0.0.1:0"
+  default: deny
+  allow_hosts: []                   # no network at all
+
+audit:
+  path: "~/.agentvault/audit.db"
+  sign_on_close: true

@@ -21,7 +21,7 @@ An unexpected finding from dogfooding it against real agents: the denials double
 - Not payload inspection of TLS — egress decisions are host:port only, by design (privacy).
 - The audit log proves what was *recorded*; it can't prove an unrecorded action never happened. The kernel layer is what closes that gap on macOS.
 
-Tech: single static Go binary, CEL policies, modernc.org/sqlite (no CGO), BubbleTea TUI. 124 tests, e2e suite runs real blocked/allowed/approved flows. Apache-2.0.
+Tech: single static Go binary, CEL policies, modernc.org/sqlite (no CGO), BubbleTea TUI. 135+ tests, an e2e suite running real blocked/allowed/approved flows, and a public red-team battery (`make redteam`) — 10 scripted attacks (shim bypass, base64 obfuscation, credential reads, raw-socket egress, audit tampering) with the results matrix committed at docs/redteam/RESULTS.md. Honest comparison vs. built-in agent sandboxes: docs/COMPARISON.md. Apache-2.0.
 
 Happy to answer questions about the interception design, the hash-chain audit, or the Seatbelt profile generation.
 

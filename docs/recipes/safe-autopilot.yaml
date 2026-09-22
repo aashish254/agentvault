@@ -1,0 +1,57 @@
+# Recipe: safe-autopilot
+# Let the agent run unattended for hours. Routine work flows freely;
+# anything destructive, irreversible, or leaky pages your phone.
+# Timeouts fail closed — nothing dangerous happens while you sleep.
+version: 1
+defaults: {action: allow}
+
+rules:
+  - name: deny-credentials
+    match:
+      action: [fs.read, fs.write, fs.delete]
+      path: ["~/.ssh/**", "~/.aws/**", "~/.gnupg/**", "**/.env"]
+    effect: deny
+
+  - name: destructive-asks
+    match:
+      action: [shell.exec]
+      cel: 'event.cmd in ["rm", "dd", "mkfs"] || event.argv.exists(a, a.startsWith("-rf"))'
+    effect: require_approval
+    message: "Destructive command — are you sure?"
+
+  - name: irreversible-asks
+    match:
+      action: [shell.exec]
+      cel: 'event.cmd == "git" && event.argv.size() > 1 && event.argv[1] in ["push", "reset", "clean"]'
+    effect: require_approval
+    message: "Hard to undo — approve from your phone."
+
+  - name: net-egress-ask
+    match:
+      action: [net.egress]
+      not_host: ["github.com", "*.githubusercontent.com", "api.anthropic.com", "api.openai.com", "opencode.ai", "*.opencode.ai", "pypi.org", "registry.npmjs.org"]
+    effect: require_approval
+
+shims:
+  binaries: [rm, curl, wget, git, npm, npx, pip, brew, dd]
+
+sandbox: {enabled: true}
+
+egress:
+  listen: "127.0.0.1:0"
+  default: deny
+  allow_hosts: ["github.com", "*.githubusercontent.com", "api.anthropic.com", "api.openai.com", "opencode.ai", "*.opencode.ai", "pypi.org", "registry.npmjs.org"]
+
+approvals:
+  timeout: 120s
+  channels:
+    tty: {enabled: true}
+    macos: {enabled: true}
+    telegram:
+      enabled: false                # flip to true after `agentvault init` sets the env vars
+      bot_token_env: AGENTVAULT_TELEGRAM_TOKEN
+      chat_id_env: AGENTVAULT_TELEGRAM_CHAT_ID
+
+audit:
+  path: "~/.agentvault/audit.db"
+  sign_on_close: true

@@ -1,0 +1,37 @@
+# Recipe: repo-only
+# The agent may read and write inside the current project — and nowhere
+# else. On macOS the kernel makes writes outside the project physically
+# impossible, even via direct syscalls or PATH tricks.
+version: 1
+defaults: {action: deny}
+approvals: {timeout: 60s}
+
+rules:
+  - name: project-is-free
+    match:
+      action: [fs.read, fs.write]
+      path: ["./**"]
+    effect: allow
+
+  - name: block-destructive-shell
+    match:
+      action: [shell.exec]
+      cel: 'event.cmd in ["rm", "dd", "mkfs", "shutdown", "reboot"]'
+    effect: deny
+    message: "Destructive shell commands are blocked."
+
+  - name: git-push-ask
+    match:
+      action: [shell.exec]
+      cel: 'event.cmd == "git" && event.argv.size() > 1 && event.argv[1] == "push"'
+    effect: require_approval
+    message: "Pushing code requires your approval."
+
+shims:
+  binaries: [rm, curl, wget, git, npm, npx, pip, dd]
+
+sandbox: {enabled: true}
+
+audit:
+  path: "~/.agentvault/audit.db"
+  sign_on_close: true

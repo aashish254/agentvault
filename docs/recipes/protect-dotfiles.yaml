@@ -1,0 +1,30 @@
+# Recipe: protect-dotfiles
+# The agent works fine, but your credentials, keys, and shell history
+# are off-limits — enforced at the kernel layer on macOS.
+version: 1
+defaults: {action: allow}            # permissive by default, strict on secrets
+approvals: {timeout: 60s}
+
+rules:
+  - name: deny-credentials
+    match:
+      action: [fs.read, fs.write, fs.delete]
+      path: ["~/.ssh/**", "~/.aws/**", "~/.gnupg/**", "~/.config/gcloud/**", "~/.kube/**"]
+    effect: deny
+    message: "Credential paths are off-limits to agents."
+
+  - name: deny-shell-history-and-env
+    match:
+      action: [fs.read]
+      path: ["~/.zsh_history", "~/.bash_history", "**/.env", "**/.env.*"]
+    effect: deny
+    message: "Shell history and .env files often contain secrets."
+
+shims:
+  binaries: [rm, curl, wget, ssh, scp, git, dd]
+
+sandbox: {enabled: true}             # macOS: kernel-enforced; elsewhere ignored with a warning
+
+audit:
+  path: "~/.agentvault/audit.db"
+  sign_on_close: true

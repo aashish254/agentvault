@@ -10,7 +10,7 @@ Weight and observability. A container gives you isolation but no per-action poli
 
 ## "Why should I trust a security tool with <N stars>?"
 
-Don't trust; verify. The repo has 124 tests including an e2e suite that performs real attacks (direct syscalls, tampered DB rows, wrong-chat Telegram replies) and asserts they fail. `agentvault verify` lets you check the audit chain yourself. SECURITY.md lists exactly what's not covered.
+Don't trust; verify. The repo has 135+ tests including an e2e suite that performs real attacks (direct syscalls, tampered DB rows, wrong-chat Telegram replies) and asserts they fail — plus a standalone red-team battery (`make redteam`) that runs 10 scripted attacks against the real binary and publishes the results matrix in docs/redteam/RESULTS.md, including the attacks we *don't* stop yet on platforms without a kernel backend. `agentvault verify` lets you check the audit chain yourself. SECURITY.md lists exactly what's not covered.
 
 ## "Telegram? Why not <other channel>?"
 

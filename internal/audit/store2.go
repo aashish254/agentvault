@@ -118,7 +118,7 @@ type QueryOpts struct {
 
 // Query reads events back for `agentvault log --export`.
 func (s *Store) Query(o QueryOpts) ([]Record, error) {
-	q := `SELECT payload, verdict, rule_name, final_effect, approved_by, wait_ms, eval_micros
+	q := `SELECT payload, verdict, rule_name, final_effect, approved_by, wait_ms, eval_micros, ts
 	      FROM events WHERE 1=1`
 	var args []any
 	if o.SessionID != "" {
@@ -151,15 +151,20 @@ func (s *Store) Query(o QueryOpts) ([]Record, error) {
 
 	var out []Record
 	for rows.Next() {
-		var payload, verdict, ruleName, finalEffect, approvedBy string
+		var payload, verdict, ruleName, finalEffect, approvedBy, ts string
 		var waitMs, evalMicros int64
 		if err := rows.Scan(&payload, &verdict, &ruleName, &finalEffect,
-			&approvedBy, &waitMs, &evalMicros); err != nil {
+			&approvedBy, &waitMs, &evalMicros, &ts); err != nil {
 			return nil, err
 		}
 		rec := Record{}
 		if err := jsonUnmarshal([]byte(payload), &rec.Event); err != nil {
 			return nil, fmt.Errorf("audit: corrupt payload: %w", err)
+		}
+		// No separate logged_at column exists; the event timestamp is the
+		// persisted time, so it backs LoggedAt on read.
+		if t, err := time.Parse(time.RFC3339Nano, ts); err == nil {
+			rec.LoggedAt = t
 		}
 		rec.Verdict = event2Verdict(verdict, ruleName, evalMicros)
 		if finalEffect != "" {

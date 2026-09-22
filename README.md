@@ -19,10 +19,35 @@ AI agents run with your shell, your files, your API keys. AgentVault answers: *w
 - **Tamper-evident audit** — every action hash-chained in local SQLite, Ed25519-signed at session close; `agentvault verify` catches any tampering
 - **Single static binary** — no daemons required, no cloud, no telemetry
 
+## How it compares
+
+Your agent's built-in sandbox (Claude Code, Codex) is good — if you only ever run that one agent, in that terminal, while you watch it. AgentVault is for everything past that:
+
+| | AgentVault | Built-in agent sandboxes | Docker/VM |
+|---|---|---|---|
+| One policy across **every** agent you run | ✅ | ❌ each vendor's own | ✅ but no per-action rules |
+| Tamper-evident, signed audit log | ✅ | ❌ | ❌ |
+| Approvals on your phone (Telegram) | ✅ | ❌ | ❌ |
+| Kernel-enforced (macOS Seatbelt) | ✅ | ✅ | ✅ |
+
+Full, sourced, honest-about-our-gaps version: [docs/COMPARISON.md](docs/COMPARISON.md).
+
+## Proof, not promises
+
+```bash
+make redteam   # 10 scripted attacks (shim bypass, base64 obfuscation, credential
+               # theft, raw-socket egress, audit tampering) against the real binary
+               # → docs/redteam/RESULTS.md
+make bench     # policy-eval latency gate (<1ms p99)
+```
+
+The battery includes attacks we *don't* stop yet on platforms without a kernel backend — printed as KNOWN GAP, not hidden. Latest matrix: [docs/redteam/RESULTS.md](docs/redteam/RESULTS.md).
+
+
 ## Install
 
 ```bash
-curl -fsSL https://agentvault.dev/install.sh | sh   # checksum-verified
+curl -fsSL https://raw.githubusercontent.com/aashish/agentvault/main/scripts/install.sh | sh   # checksum-verified, from GitHub Releases
 agentvault init                                      # writes policy, installs shims
 ```
 
@@ -55,7 +80,7 @@ rules:
     effect: require_approval
 ```
 
-More: [agentvault.example.yaml](agentvault.example.yaml) · Integrations: [Claude Code](docs/integrations/claude.md) · [OpenCode](docs/integrations/opencode.md) · [OpenClaw](docs/integrations/openclaw.md)
+More: [agentvault.example.yaml](agentvault.example.yaml) · [Policy recipes](docs/recipes/) · Integrations: [Claude Code](docs/integrations/claude.md) · [OpenCode](docs/integrations/opencode.md) · [OpenClaw](docs/integrations/openclaw.md)
 
 ## Status
 

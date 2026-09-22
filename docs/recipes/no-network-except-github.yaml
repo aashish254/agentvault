@@ -1,0 +1,35 @@
+# Recipe: no-network-except-github
+# The agent can talk to GitHub and your LLM provider — nothing else.
+# Unknown hosts require your approval; raw sockets that ignore the proxy
+# are killed by the kernel sandbox on macOS.
+version: 1
+defaults: {action: deny}
+approvals: {timeout: 60s}
+
+rules:
+  - name: project-is-free
+    match:
+      action: [fs.read, fs.write]
+      path: ["./**"]
+    effect: allow
+
+  - name: net-egress-ask
+    match:
+      action: [net.egress]
+      not_host: ["github.com", "*.githubusercontent.com", "api.github.com", "api.anthropic.com", "api.openai.com", "opencode.ai", "*.opencode.ai"]
+    effect: require_approval
+    message: "Agent wants to reach an unknown host."
+
+shims:
+  binaries: [rm, curl, wget, git, ssh, scp]
+
+sandbox: {enabled: true}
+
+egress:
+  listen: "127.0.0.1:0"
+  default: deny
+  allow_hosts: ["github.com", "*.githubusercontent.com", "api.github.com", "api.anthropic.com", "api.openai.com", "opencode.ai", "*.opencode.ai"]
+
+audit:
+  path: "~/.agentvault/audit.db"
+  sign_on_close: true
