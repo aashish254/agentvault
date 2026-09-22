@@ -30,6 +30,7 @@ corpus:
 	LEGIT_REPORT="$(CURDIR)/docs/redteam/LEGIT_RESULTS.md" LEGIT_JSON="$(CURDIR)/docs/redteam/LEGIT_RESULTS.json" \
 		go test -count=1 -v -run 'TestAttackCorpus|TestLegitWorkCorpus' ./test/redteam/
 	python3 scripts/corpus_chart.py
+	python3 scripts/scorecard_chart.py
 
 vet:
 	go vet ./...

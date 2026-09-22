@@ -53,6 +53,10 @@ And at corpus scale — **103 real executed attack variants** (13 destructive, 5
 
 Only AgentVault tops both axes: **103/103 attacks blocked *and* 8/8 legitimate operations allowed** — `git push` and network egress escalate to `require_approval` (terminal, macOS popup, or Telegram) instead of hitting a static deny. Anthropic's srt also blocked 103/103, but its zero-config default gets there by blocking *all* writes and *all* network: the agent can't edit a file, mkdir, commit, or fetch a package (3/8 legitimate ops). Codex CLI's default sandbox blocked 22/103 — full-disk reads and in-project destruction are outside its threat model. Docker blocked 4/92 — a container with a writable bind mount is not a sandbox.
 
+The same data as one scorecard — every sandbox picks a side between *secure* and *usable*; AgentVault is alone in the top-right quadrant:
+
+![Security vs usability scorecard: attacks blocked (%) vs legitimate work allowed (%) — AgentVault alone top-right at 100%/100%; srt top-left (100% blocked, 38% work); Codex and Docker bottom-right; no sandbox bottom-right corner](docs/redteam/SCORECARD_CHART.png)
+
 
 ## Install
 

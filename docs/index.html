@@ -57,6 +57,10 @@
   <img class="chart" src="redteam/CORPUS_CHART.png" alt="103 real attack variants plus 8 legitimate dev ops measured per tool — AgentVault 103/103 blocked and 8/8 allowed, the only tool maxing both axes; srt 103/103 blocked but 3/8 ops allowed, codex 22/103, Docker 4/92">
   <p class="note" style="margin-top:10px">13 destructive · 52 credential-theft · 10 exfiltration · 16 evasion · 12 persistence — each attack proven to succeed unsandboxed first, then measured per tool. Right panel: 8 everyday dev ops (read, edit, build, commit, push, fetch) under the same default configs — security that blocks all work gets disabled. Reproduce: <code>make corpus</code> · <a href="https://github.com/aashish254/agentvault/blob/main/docs/redteam/CORPUS_RESULTS.md">attack matrix</a> · <a href="https://github.com/aashish254/agentvault/blob/main/docs/redteam/LEGIT_RESULTS.md">legit-work matrix</a></p>
 
+  <h2>The two-axis scorecard</h2>
+  <img class="chart" src="redteam/SCORECARD_CHART.png" alt="Security vs usability quadrant: attacks blocked vs legitimate work allowed — AgentVault alone in the top-right at 100%/100%; srt 100% blocked but 38% work allowed; Codex 21%/75%; Docker 4%/80%; no sandbox 0%/100%">
+  <p class="note" style="margin-top:10px">Same measured data, one point per tool. Deny-everything scores top-left; no protection scores bottom-right. Only the top-right quadrant is both safe and usable.</p>
+
   <h2>Links</h2>
   <p class="links">
     <a href="https://github.com/aashish254/agentvault">GitHub</a>

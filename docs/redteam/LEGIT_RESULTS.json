@@ -1,5 +1,5 @@
 {
-  "generated": "2026-09-22T18:44:31Z",
+  "generated": "2026-09-22T19:22:16Z",
   "os": "darwin/arm64",
   "internet": true,
   "tools": [
@@ -96,8 +96,8 @@
     },
     {
       "id": "L-08",
-      "name": "git push to a remote (https)",
-      "net": true,
+      "name": "git push to a remote",
+      "net": false,
       "results": {
         "agentvault": "ok",
         "codex": "blocked",
