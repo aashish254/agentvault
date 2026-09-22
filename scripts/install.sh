@@ -1,7 +1,7 @@
 #!/bin/sh
 # AgentVault installer — downloads the right binary for your platform,
 # verifies its checksum, and installs to ~/.local/bin.
-# Usage: curl -fsSL https://raw.githubusercontent.com/aashish/agentvault/main/scripts/install.sh | sh
+# Usage: curl -fsSL https://raw.githubusercontent.com/aashish254/agentvault/main/scripts/install.sh | sh
 set -eu
 
 REPO="aashish/agentvault"

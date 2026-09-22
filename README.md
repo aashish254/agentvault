@@ -47,7 +47,7 @@ The battery includes attacks we *don't* stop yet on platforms without a kernel b
 ## Install
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/aashish/agentvault/main/scripts/install.sh | sh   # checksum-verified, from GitHub Releases
+curl -fsSL https://raw.githubusercontent.com/aashish254/agentvault/main/scripts/install.sh | sh   # checksum-verified, from GitHub Releases
 agentvault init                                      # writes policy, installs shims
 ```
 
