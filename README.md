@@ -47,6 +47,12 @@ Measured against other sandboxes (real `make compare` run, default configs — r
 
 ![AgentVault vs srt vs Docker — measured attack outcomes](docs/redteam/COMPARE_CHART.png)
 
+And at corpus scale — **103 real executed attack variants** (13 destructive, 52 credential-theft, 10 exfiltration, 16 evasion, 12 persistence), each verified to actually succeed unsandboxed, measured under every tool on the host (`make corpus` → [docs/redteam/CORPUS_RESULTS.md](docs/redteam/CORPUS_RESULTS.md)):
+
+![103-attack corpus: AgentVault 103/103 blocked, srt 103/103, Docker 4/92](docs/redteam/CORPUS_CHART.png)
+
+AgentVault and Anthropic's srt both blocked 103/103. Docker blocked only network egress — every destructive, credential-theft, and persistence attack succeeded against the mounted working directory under defaults, because a container is not a sandbox for things you mount into it.
+
 
 ## Install
 

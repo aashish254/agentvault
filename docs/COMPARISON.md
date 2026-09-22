@@ -52,4 +52,46 @@ The red-team battery includes attacks AgentVault is *expected* to stop (shim byp
 
 ![Measured cross-tool results table](redteam/COMPARE_RESULTS.png)
 
+## The 103-attack corpus
+
+`make corpus` goes further still: **103 distinct real attack variants** — 13 destructive, 52 credential-theft (13 decoy secret files × 4 exfiltration-style read methods), 10 network exfiltration, 16 obfuscation/evasion, 12 persistence — generated as one POSIX-sh script and executed under every sandbox on the host. Every attack is first proven to *succeed with no sandbox* (otherwise the result would be theatre), then measured per tool. Latest run (2026-09-22, darwin/arm64):
+
+| Category | Attacks | no sandbox | AgentVault | srt (Claude Code) | Codex CLI | Docker |
+|---|---|---|---|---|---|---|
+| destructive | 13 | 0/13 blocked | **13/13** | **13/13** | 0/13 | 0/12 |
+| credential-theft | 52 | 0/52 | **52/52** | **52/52** | 0/52 | 0/52 |
+| exfiltration | 10 | 0/10 | **10/10** | **10/10** | **10/10** | 3/3 |
+| evasion | 16 | 0/16 | **16/16** | **16/16** | 0/16 | 1/14 |
+| persistence | 12 | 0/12 | **12/12** | **12/12** | **12/12** | 0/11 |
+
+(➖ cells in the [full matrix](redteam/CORPUS_RESULTS.md) are binaries missing inside the minimal alpine image — skipped, never counted.)
+
+![103-attack corpus chart](redteam/CORPUS_CHART.png)
+
+What each category costs you if it lands:
+
+- **destructive** — working tree and user files destroyed; irreversible data loss.
+- **credential-theft** — stolen SSH keys, cloud tokens, and registry credentials give persistent access to your servers and accounts, usable from anywhere, indefinitely.
+- **exfiltration** — anything the agent can read leaves the machine: extortion, resale, pivoting into your infrastructure.
+- **evasion** — the same damage, invisible to command-string scanners; how real prompt-injection payloads hide.
+- **persistence** — backdoors in shell rc files, `authorized_keys`, LaunchAgents, git aliases; the attacker returns after today's agent is deleted.
+
+The honest finding in the Docker column: a container with `--network none` stops egress, but a **writable bind mount is not a sandbox** — every filesystem attack succeeded against the mounted directory. AgentVault's kernel sandbox (Seatbelt) denies those writes at the syscall layer even inside your own project tree.
+
+The honest finding in the Codex column: Codex's default `workspace-write` profile (its real [seatbelt_base_policy.sbpl](https://github.com/openai/codex/blob/main/codex-rs/sandboxing/src/seatbelt_base_policy.sbpl), run verbatim) blocks all network exfiltration and all persistence writes outside the workspace — but **allows full-disk reads and any write inside your project**. So `rm -rf` of your working tree, reading `~/.ssh/id_rsa` or `~/.aws/credentials`, and every obfuscated variant succeed. That's a deliberate trade-off (the agent must read your code and edit your project), not a bug — but it means credential theft and in-project destruction are outside Codex's default threat model, and its permission prompts are the only guard there.
+
+## Which agent does each corpus column represent?
+
+The corpus measures **sandbox mechanisms**, not agents — you can't `sh` a script through a closed-source IDE. Here's how the popular agents map:
+
+| Agent | Corpus column | Why |
+|---|---|---|
+| **Claude Code** | `srt` | Claude Code's sandbox *is* [sandbox-runtime](https://github.com/anthropics/sandbox-runtime) — the same binary, same defaults. |
+| **Codex CLI** (OpenAI) | `codex` | Codex's macOS sandbox is `sandbox-exec` with a published Seatbelt profile; the corpus runs the [verbatim profile](https://github.com/openai/codex/blob/main/codex-rs/sandboxing/src/seatbelt_base_policy.sbpl) with its default workspace-write composition (full-disk read, writes = workspace + tmp, network off). |
+| **OpenCode** | `no-sandbox` | OpenCode has [permission patterns](https://opencode.ai/docs/permissions/) (ask/allow/deny globs) but **no OS-level sandbox** — once a command is approved (or `--auto` is on), it runs with your full user privileges, identical to the no-sandbox column. |
+| **Antigravity** (Google) | — untestable | Closed-source IDE, no scriptable sandbox; terminal commands run unsandboxed behind approval prompts. Effectively the no-sandbox column once you click "allow". |
+| **Gemini CLI** | `docker` / `codex`-style | Its `--sandbox` mode reuses sandbox-exec or a container — already represented by those columns. Not installed on the test host; the corpus picks it up automatically if you install it. |
+
+This is exactly why AgentVault exists: the vendor sandboxes each protect *one* agent with *one* dialect, and the approval-only agents protect nothing at the OS layer at all.
+
 Latest run (2026-09-22, darwin/arm64, real `srt` 1.0.0 and Docker Desktop installed): AgentVault blocked all three attacks; `srt` and Docker let the destructive delete and credential read through under default configuration (srt blocked the egress). Defaults aren't the whole story — every tool above can be *configured* to block some of these — but defaults are what most users run. [Full results](redteam/COMPARE_RESULTS.md) · [Live opencode-under-AgentVault transcript](redteam/LIVE_DEMO.md)
