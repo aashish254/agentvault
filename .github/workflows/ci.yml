@@ -25,6 +25,8 @@ jobs:
         with:
           go-version-file: go.mod
       - uses: golangci/golangci-lint-action@v6
+        with:
+          version: latest # must be built with a Go >= the go.mod target version
 
   cross-compile:
     runs-on: ubuntu-latest
