@@ -4,7 +4,7 @@
 # Usage: curl -fsSL https://raw.githubusercontent.com/aashish254/agentvault/main/scripts/install.sh | sh
 set -eu
 
-REPO="aashish/agentvault"
+REPO="aashish254/agentvault"
 VERSION="${AGENTVAULT_VERSION:-latest}"
 INSTALL_DIR="${AGENTVAULT_INSTALL_DIR:-$HOME/.local/bin}"
 
