@@ -38,12 +38,13 @@
     });
   });
 
-  /* Wide tables and the narrow-screen nav strip scroll sideways; fade the edge
-     only while there is more to see. */
+  /* Wide tables and the narrow-screen nav strip scroll sideways; fade the edges
+     where content is still off-screen. */
   document.querySelectorAll('.table-scroll, .nav-scroll').forEach(function (box) {
     function update() {
-      var room = box.scrollWidth - box.clientWidth - box.scrollLeft;
-      box.classList.toggle('scrolls', box.scrollWidth > box.clientWidth + 2 && room > 2);
+      var over = box.scrollWidth - box.clientWidth;
+      box.classList.toggle('scrolls', over > 2 && over - box.scrollLeft > 2);
+      box.classList.toggle('scrolls-start', box.scrollLeft > 2);
     }
     box.addEventListener('scroll', update, { passive: true });
     window.addEventListener('resize', update);

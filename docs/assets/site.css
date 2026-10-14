@@ -182,11 +182,6 @@ a, button, summary, input, [role="button"] {
 }
 .nav { min-width: 0; }
 .nav-scroll { display: flex; gap: 26px; }
-/* site.js adds .scrolls only while a link is still off-screen to the right. */
-.nav-scroll.scrolls {
-  mask-image: linear-gradient(90deg, #000 calc(100% - 34px), transparent);
-  -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 34px), transparent);
-}
 .nav a {
   font: 500 14px/1 var(--sans);
   color: var(--ink-2);
@@ -544,13 +539,29 @@ h3 {
 .code .c { color: var(--ink-3); font-style: italic; }
 .code .n { color: var(--ask); }
 
+/* ── sideways scroll affordance ─────────────────────────────── */
+/* Anything that scrolls sideways fades whichever edge still has content
+   off-screen. site.js owns .scrolls (more to see right) and .scrolls-start
+   (content scrolled past on the left); --fade is the band width per element. */
+.table-scroll, .nav-scroll { --fade: 44px; }
+.nav-scroll { --fade: 34px; }
+.scrolls {
+  mask-image: linear-gradient(90deg, #000 calc(100% - var(--fade)), transparent);
+  -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - var(--fade)), transparent);
+}
+.scrolls-start {
+  mask-image: linear-gradient(90deg, transparent, #000 var(--fade));
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 var(--fade));
+}
+.scrolls.scrolls-start {
+  mask-image: linear-gradient(90deg, transparent, #000 var(--fade),
+    #000 calc(100% - var(--fade)), transparent);
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 var(--fade),
+    #000 calc(100% - var(--fade)), transparent);
+}
+
 /* ── tables ───────────────────────────────────────────────── */
 .table-scroll { overflow-x: auto; margin-top: 30px; -webkit-overflow-scrolling: touch; }
-/* The fade is set by site.js only while there is more table off-screen. */
-.table-scroll.scrolls {
-  mask-image: linear-gradient(90deg, #000 calc(100% - 44px), transparent);
-  -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 44px), transparent);
-}
 table {
   border-collapse: collapse;
   width: 100%;

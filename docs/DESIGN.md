@@ -74,10 +74,12 @@ Rules that hold the identity together:
 - Breakpoints: 1080 (margin column shrinks, hero stacks), 860 (clauses go single-column,
   nav becomes a horizontally scrollable strip), 560 (stamp re-anchors into the record's
   blank ruled band, hero actions stack).
-- Anything that scrolls sideways (`.table-scroll`, `.nav-scroll`) fades its trailing edge
-  only while content remains off-screen: `site.js` toggles `.scrolls`, and the mask lives
-  on the scroller itself, never on an element carrying a border — the nav's `border-top`
-  sits on the non-scrolling `.nav` wrapper so the hairline stays full-bleed.
+- Anything that scrolls sideways (`.table-scroll`, `.nav-scroll`) fades whichever edges
+  still have content off-screen: `site.js` toggles `.scrolls` (more to see right) and
+  `.scrolls-start` (content scrolled past on the left), and `--fade` sets the band width
+  per element. The mask lives on the scroller itself, never on an element carrying a
+  border — the nav's `border-top` sits on the non-scrolling `.nav` wrapper so the hairline
+  stays full-bleed.
 
 ## Motifs
 
