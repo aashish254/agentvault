@@ -38,9 +38,9 @@
     });
   });
 
-  /* Wide tables scroll sideways on narrow screens; fade the edge only while
-     there is more to see. */
-  document.querySelectorAll('.table-scroll').forEach(function (box) {
+  /* Wide tables and the narrow-screen nav strip scroll sideways; fade the edge
+     only while there is more to see. */
+  document.querySelectorAll('.table-scroll, .nav-scroll').forEach(function (box) {
     function update() {
       var room = box.scrollWidth - box.clientWidth - box.scrollLeft;
       box.classList.toggle('scrolls', box.scrollWidth > box.clientWidth + 2 && room > 2);

@@ -180,7 +180,13 @@ a, button, summary, input, [role="button"] {
   font-size: 20px;
   letter-spacing: -.02em;
 }
-.nav { display: flex; gap: 26px; }
+.nav { min-width: 0; }
+.nav-scroll { display: flex; gap: 26px; }
+/* site.js adds .scrolls only while a link is still off-screen to the right. */
+.nav-scroll.scrolls {
+  mask-image: linear-gradient(90deg, #000 calc(100% - 34px), transparent);
+  -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 34px), transparent);
+}
 .nav a {
   font: 500 14px/1 var(--sans);
   color: var(--ink-2);
@@ -791,10 +797,13 @@ footer ul a:hover { color: var(--ink); border-bottom-color: var(--ink); }
   :root { --focus-clearance: 116px; }
   .masthead-in { flex-wrap: wrap; min-height: 0; gap: 0 14px; padding-bottom: 0; }
   .nav {
-    order: 3; flex: 1 0 100%; gap: 20px; margin-top: 6px; padding: 6px 0 9px;
-    border-top: 1px solid var(--rule); overflow-x: auto; scrollbar-width: none;
+    order: 3; flex: 1 0 100%; margin-top: 6px; padding: 6px 0 9px;
+    border-top: 1px solid var(--rule);
   }
-  .nav::-webkit-scrollbar { display: none }
+  .nav-scroll {
+    gap: 14px; overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch;
+  }
+  .nav-scroll::-webkit-scrollbar { display: none }
   .nav a { white-space: nowrap; padding-block: 7px }
   .gh-btn { margin-left: auto; }
   .strip-in { grid-template-columns: repeat(2, minmax(0, 1fr)); }
