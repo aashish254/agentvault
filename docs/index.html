@@ -3,74 +3,877 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>AgentVault — kernel-enforced safety for AI agents</title>
-<meta name="description" content="One YAML policy, human approvals on your phone, and a tamper-evident audit log for any AI agent. Single static binary, no daemon.">
-<style>
-  :root { --bg:#0d1117; --fg:#e6edf3; --mut:#8b949e; --grn:#3fb950; --acc:#58a6ff; --card:#161b22; --brd:#30363d; }
-  * { box-sizing:border-box; margin:0; }
-  body { background:var(--bg); color:var(--fg); font:16px/1.6 -apple-system,"Segoe UI",Helvetica,Arial,sans-serif; }
-  .wrap { max-width:820px; margin:0 auto; padding:48px 20px 80px; }
-  h1 { font-size:2.6rem; letter-spacing:-.02em; }
-  h1 span { color:var(--grn); }
-  .tag { color:var(--mut); font-size:1.15rem; margin:12px 0 32px; }
-  .install { background:var(--card); border:1px solid var(--brd); border-radius:10px; padding:18px 20px; margin:8px 0 10px; position:relative; }
-  .install code { font:14px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace; color:var(--fg); word-break:break-all; }
-  .install .c2 { margin-top:10px; color:var(--mut); }
-  .copy { position:absolute; top:12px; right:12px; background:var(--brd); color:var(--fg); border:0; border-radius:6px; padding:5px 12px; font-size:12px; cursor:pointer; }
-  .copy:hover { background:#3d444d; }
-  .note { color:var(--mut); font-size:.9rem; margin-bottom:36px; }
-  .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:14px; margin:28px 0 40px; }
-  .card { background:var(--card); border:1px solid var(--brd); border-radius:10px; padding:16px 18px; }
-  .card b { color:var(--grn); display:block; margin-bottom:6px; }
-  .card p { color:var(--mut); font-size:.92rem; }
-  h2 { font-size:1.3rem; margin:36px 0 14px; }
-  img.chart { width:100%; border:1px solid var(--brd); border-radius:10px; }
-  .links a { color:var(--acc); margin-right:18px; text-decoration:none; }
-  .links a:hover { text-decoration:underline; }
-  footer { margin-top:56px; color:var(--mut); font-size:.85rem; border-top:1px solid var(--brd); padding-top:20px; }
-</style>
+<title>AgentVault — the permission firewall for AI agents</title>
+<meta name="description" content="One YAML policy, human approvals on your phone, and a tamper-evident audit log for any AI agent. Kernel-enforced on macOS. Single static binary, no daemon. Measured against 103 real attacks.">
+<meta name="theme-color" content="#e7e8e3">
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="assets/mark-192.png">
+<link rel="preload" href="assets/fonts/fraunces-latin-var.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="assets/fonts/public-sans-latin-var.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="canonical" href="https://aashish254.github.io/agentvault/">
+<meta property="og:type" content="website">
+<meta property="og:title" content="AgentVault — kernel-enforced safety for AI agents">
+<meta property="og:description" content="103/103 real attacks blocked and 8/8 everyday dev operations allowed — the only sandbox measured on both axes. One YAML policy, approvals on your phone, tamper-evident audit log.">
+<meta property="og:url" content="https://aashish254.github.io/agentvault/">
+<meta property="og:image" content="https://aashish254.github.io/agentvault/assets/og.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="stylesheet" href="assets/site.css">
 </head>
 <body>
-<div class="wrap">
-  <h1>Agent<span>Vault</span></h1>
-  <p class="tag">Kernel-enforced safety for AI agents. One YAML policy, approvals on your phone, tamper-evident audit log — for <em>any</em> agent, not just one vendor's.</p>
+<a class="skip" href="#top">Skip to content</a>
 
-  <div class="install">
-    <button class="copy" onclick="navigator.clipboard.writeText(document.getElementById('cmd').textContent);this.textContent='copied!'">copy</button>
-    <code id="cmd">curl -fsSL https://raw.githubusercontent.com/aashish254/agentvault/main/scripts/install.sh | sh</code>
-    <div class="c2"><code>agentvault init</code> &nbsp;# writes policy, installs shims — done</div>
+<header class="masthead">
+  <div class="wrap masthead-in">
+    <a class="brand" href="#top" aria-label="AgentVault, back to top">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true">
+        <rect x="1.85" y="1.85" width="20.3" height="20.3"/>
+        <circle cx="12" cy="12" r="5.7"/>
+        <path stroke-linecap="square" d="M12 6.3V4M12 17.7V20M6.3 12H4M17.7 12H20"/>
+        <circle cx="12" cy="10.7" r="1.55"/>
+        <path stroke-linecap="round" d="M12 12.25V15.1"/>
+      </svg>
+      <span class="brand-name" translate="no">AgentVault</span>
+    </a>
+    <nav class="nav" aria-label="Sections">
+      <a href="#how">How it works</a>
+      <a href="#policy">Policy</a>
+      <a href="#record">The record</a>
+      <a href="#proof">Proof</a>
+      <a href="#compare">Compare</a>
+    </nav>
+    <a class="gh-btn" href="https://github.com/aashish254/agentvault">
+      <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58.02.84 3.3.84 7.48c0 3.05 1.72 5.18 4.16 5.85.3.05.42-.13.42-.3v-1.15c-1.7.37-2.05-.82-2.05-.82-.28-.7-.68-.9-.68-.9-.55-.37.04-.37.04-.37.62.05.94.63 2.4 2.02.42.5 1.25.37 1.56.28.05-.42.24-.72.42-.88-1.33-.15-2.72-.68-2.72-2.97 0-.65.24-1.18.62-1.6-.06-.15-.27-.75.06-1.56 0 0 .5-.15 1.65.62.47-.12.97-.18 1.47-.18s1 .06 1.47.18c1.15-.77 1.65-.62 1.65-.62.33.81.12 1.41.06 1.56.4.42.62.95.62 1.6 0 2.3-1.37 2.82-2.7 2.97.22.2.42.57.42 1.16v1.72c0 .17.12.35.42.3 2.44-.67 4.16-2.8 4.16-5.85C15.16 3.3 12.42.02 8 0Z"/></svg>
+      GitHub
+    </a>
   </div>
-  <p class="note">One command. Checksum-verified binary from GitHub Releases. macOS + Linux, amd64 + arm64. No daemon, no dependencies.</p>
+</header>
 
-  <div class="grid">
-    <div class="card"><b>103/103 attacks blocked — and work still works</b><p>Every corpus variant stopped in a real measured run, <i>and</i> 8/8 everyday dev ops allowed via one-tap approvals. srt ties on attacks only by blocking all writes and network (3/8 ops); Docker let 88 attacks through.</p></div>
-    <div class="card"><b>Approve from your phone</b><p>Telegram, native macOS popup, or terminal. Timeouts fail closed — the agent waits, nothing runs.</p></div>
-    <div class="card"><b>Prove what happened</b><p>Hash-chained SQLite audit log, Ed25519-sealed. <code>agentvault verify</code> detects tampering.</p></div>
-    <div class="card"><b>Any agent</b><p>Claude Code, OpenCode, OpenClaw, shell scripts — one policy, one inbox, one log across all of them.</p></div>
+<main id="top">
+
+<!-- ════ HERO ════════════════════════════════════════════════════════════ -->
+<section class="hero">
+  <div class="wrap hero-grid">
+    <div>
+      <p class="eyebrow">Runtime permission firewall</p>
+      <h1>The agent asks.<br>You decide.<br><em>The record proves it.</em></h1>
+      <p class="hero-lede">Your AI agent runs with your shell, your files, your SSH keys.
+        AgentVault puts a firewall in front of all three: <b>one YAML policy</b> for every agent
+        you run, <b>approvals that reach your phone</b>, and a <b>tamper-evident log</b> of what
+        actually happened. On macOS the denials are enforced by the kernel, not by convention.</p>
+
+      <div class="hero-actions">
+        <a class="btn-quiet" href="#proof">Read the measured proof</a>
+        <a class="btn-quiet" href="#compare">How it compares</a>
+      </div>
+    </div>
+
+    <figure class="record">
+      <figcaption class="record-head">
+        <span>Decision record</span>
+        <span translate="no">AV-1 · 2026-09-22</span>
+      </figcaption>
+      <div class="record-body">
+        <span class="l l-cmd"><span aria-hidden="true">$ </span><span translate="no">agentvault run -- opencode \</span></span>
+        <span class="l l-cmd" translate="no">  run 'Delete the src dir…'</span>
+        <span class="l l-out">kernel sandbox: ON (Seatbelt)</span>
+        <span class="l l-cmd"><span aria-hidden="true">$ </span><span translate="no">rm -rf src &amp;&amp; ls -la</span></span>
+        <span class="l l-deny">denied: rule "destructive-asks"</span>
+        <span class="l l-deny">approval timed out · fail closed</span>
+        <span class="l l-note">“The <code translate="no">rm -rf src</code> command was denied… You’ll need to approve the command in the approval prompt for it to run.”<br><span class="l-out">— the agent, after reading the denial. <code translate="no">src/</code> survived.</span></span>
+      </div>
+      <p class="record-foot">
+        <span class="hash" translate="no">agentvault verify</span>
+        <span class="seal">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><path d="M4 12.5 9.5 18 20 6"/></svg>
+          OK
+        </span>
+      </p>
+      <p class="stamp" aria-hidden="true">DENIED</p>
+    </figure>
+    <p class="visually-hidden">Transcript from a real run: the agent tried
+      <code>rm -rf src</code>, AgentVault required an approval that timed out, so the command was denied and the
+      directory survived. Recorded in docs/redteam/LIVE_DEMO.md.</p>
   </div>
 
-  <h2>Measured, not claimed</h2>
-  <img class="chart" src="redteam/COMPARE_CHART.png" alt="AgentVault vs srt vs Docker: measured attack outcomes — AgentVault blocked 3/3">
-  <p class="note" style="margin-top:10px">Real <code>make compare</code> output, 2026-09-22. Reproduce: <code>go test -v -run TestCompareMatrix ./test/redteam/</code></p>
+  <div class="wrap install">
+    <p class="install-label">Install<span>one command</span></p>
+    <div class="cmd">
+      <code><span class="prompt" aria-hidden="true">$ </span><span id="install-cmd" translate="no">curl -fsSL https://raw.githubusercontent.com/aashish254/agentvault/main/scripts/install.sh | sh</span></code>
+      <button class="copy" type="button" data-copy="install-cmd" aria-label="Copy the install command">copy</button>
+    </div>
+    <p class="install-note">Then <code translate="no">agentvault init</code> — it writes your policy and installs the
+      shims. Checksum-verified binary from GitHub Releases; macOS and Linux, amd64 and arm64. No daemon, no cloud,
+      no telemetry.</p>
+  </div>
+</section>
 
-  <h2>103-attack corpus</h2>
-  <img class="chart" src="redteam/CORPUS_CHART.png" alt="103 real attack variants plus 8 legitimate dev ops measured per tool — AgentVault 103/103 blocked and 8/8 allowed, the only tool maxing both axes; srt 103/103 blocked but 3/8 ops allowed, codex 22/103, Docker 4/92">
-  <p class="note" style="margin-top:10px">13 destructive · 52 credential-theft · 10 exfiltration · 16 evasion · 12 persistence — each attack proven to succeed unsandboxed first, then measured per tool. Right panel: 8 everyday dev ops (read, edit, build, commit, push, fetch) under the same default configs — security that blocks all work gets disabled. Reproduce: <code>make corpus</code> · <a href="https://github.com/aashish254/agentvault/blob/main/docs/redteam/CORPUS_RESULTS.md">attack matrix</a> · <a href="https://github.com/aashish254/agentvault/blob/main/docs/redteam/LEGIT_RESULTS.md">legit-work matrix</a></p>
+<!-- ════ STAT STRIP ══════════════════════════════════════════════════════ -->
+<section class="strip" aria-label="Measured results">
+  <div class="wrap strip-in">
+    <div class="strip-item">
+      <p class="stat-val">103<small>/103</small></p>
+      <p class="stat-key">real attack variants blocked, every one proven to work unsandboxed first</p>
+    </div>
+    <div class="strip-item">
+      <p class="stat-val">8<small>/8</small></p>
+      <p class="stat-key">everyday dev operations still allowed under the same default policy</p>
+    </div>
+    <div class="strip-item">
+      <p class="stat-val">&lt;1<small> ms</small></p>
+      <p class="stat-key">p99 policy evaluation, gated by <code translate="no">make bench</code></p>
+    </div>
+    <div class="strip-item">
+      <p class="stat-val">1<small> binary</small></p>
+      <p class="stat-key">no daemon, no database server, no phone-home. Apache-2.0</p>
+    </div>
+  </div>
+</section>
 
-  <h2>The two-axis scorecard</h2>
-  <img class="chart" src="redteam/SCORECARD_CHART.png" alt="Security vs usability quadrant: attacks blocked vs legitimate work allowed — AgentVault alone in the top-right at 100%/100%; srt 100% blocked but 38% work allowed; Codex 21%/75%; Docker 4%/80%; no sandbox 0%/100%">
-  <p class="note" style="margin-top:10px">Same measured data, one point per tool. Deny-everything scores top-left; no protection scores bottom-right. Only the top-right quadrant is both safe and usable.</p>
+<!-- ════ 01 HOW ══════════════════════════════════════════════════════════ -->
+<section class="clause" id="how">
+  <div class="clause-mark">§01<i>What gets intercepted</i></div>
+  <div>
+    <h2>Four channels, one policy, one verdict</h2>
+    <p class="clause-lede">An agent has four ways to touch your machine. AgentVault sits on all four,
+      evaluates every request against the same rules, and writes the outcome to the same log.
+      Deny by default: nothing runs unless a rule says it may.</p>
 
-  <h2>Links</h2>
-  <p class="links">
-    <a href="https://github.com/aashish254/agentvault">GitHub</a>
-    <a href="https://github.com/aashish254/agentvault/releases/latest">Download v0.1.0</a>
-    <a href="https://github.com/aashish254/agentvault/blob/main/docs/COMPARISON.md">Full comparison</a>
-    <a href="https://github.com/aashish254/agentvault/blob/main/docs/redteam/LIVE_DEMO.md">Live agent demo transcript</a>
-    <a href="https://github.com/aashish254/agentvault/issues">Issues</a>
-  </p>
+    <figure class="diagram">
+      <svg viewBox="0 0 1000 344" role="img" aria-labelledby="pipe-t pipe-d">
+        <title id="pipe-t">How a request flows through AgentVault</title>
+        <desc id="pipe-d">The agent’s requests reach four channels: MCP tool calls through a stdio proxy,
+          shell commands through PATH shims, network egress through a CONNECT proxy, and the filesystem
+          through the kernel sandbox. All four ask the policy engine, which returns allow, require approval,
+          or deny. Every verdict is appended to a hash-chained audit log.</desc>
 
-  <footer>AgentVault is Apache-2.0. Honest about gaps: Linux/Windows kernel enforcement lands in v0.3 — see SECURITY.md.</footer>
-</div>
+        <g font-family="var(--sans)" font-size="13" fill="var(--ink)">
+          <!-- agent -->
+          <rect x="8" y="120" width="152" height="72" fill="var(--paper-raised)" stroke="var(--ink)"/>
+          <text x="24" y="148" font-weight="600">The agent</text>
+          <text x="24" y="168" font-size="11.5" fill="var(--ink-3)" font-family="var(--mono)">claude · opencode</text>
+          <text x="24" y="183" font-size="11.5" fill="var(--ink-3)" font-family="var(--mono)">any wrapped cmd</text>
+
+          <!-- channels -->
+          <g>
+            <rect x="220" y="14" width="256" height="58" fill="var(--paper-form)" stroke="var(--ink)"/>
+            <text x="236" y="38" font-weight="500">MCP tool calls</text>
+            <text x="236" y="56" font-size="11.5" fill="var(--ink-3)" font-family="var(--mono)">stdio proxy</text>
+
+            <rect x="220" y="86" width="256" height="58" fill="var(--paper-form)" stroke="var(--ink)"/>
+            <text x="236" y="110" font-weight="500">Shell commands</text>
+            <text x="236" y="128" font-size="11.5" fill="var(--ink-3)" font-family="var(--mono)">PATH shims: rm, git, curl…</text>
+
+            <rect x="220" y="158" width="256" height="58" fill="var(--paper-form)" stroke="var(--ink)"/>
+            <text x="236" y="182" font-weight="500">Network egress</text>
+            <text x="236" y="200" font-size="11.5" fill="var(--ink-3)" font-family="var(--mono)">CONNECT proxy, host:port</text>
+
+            <rect x="220" y="230" width="256" height="58" fill="var(--paper-form)" stroke="var(--ink)"/>
+            <text x="236" y="254" font-weight="500">Filesystem + syscalls</text>
+            <text x="236" y="272" font-size="11.5" fill="var(--ink-3)" font-family="var(--mono)">kernel Seatbelt — bypass-proof</text>
+          </g>
+
+          <!-- engine -->
+          <rect x="546" y="98" width="200" height="116" fill="var(--ink)"/>
+          <text x="566" y="130" fill="var(--paper)" font-weight="600">Policy engine</text>
+          <text x="566" y="154" font-size="11.5" fill="var(--paper)" opacity=".72" font-family="var(--mono)">agentvault.yaml</text>
+          <text x="566" y="172" font-size="11.5" fill="var(--paper)" opacity=".72" font-family="var(--mono)">CEL expressions</text>
+          <text x="566" y="190" font-size="11.5" fill="var(--paper)" opacity=".72" font-family="var(--mono)">defaults: deny</text>
+
+          <!-- verdicts -->
+          <g font-size="12.5">
+            <rect x="806" y="34" width="186" height="46" fill="var(--paper-form)" stroke="var(--allow)" stroke-width="1.6"/>
+            <text x="822" y="56" fill="var(--allow)" font-weight="600" font-family="var(--mono)">allow</text>
+            <text x="822" y="71" font-size="11" fill="var(--ink-3)" font-family="var(--mono)">runs immediately</text>
+
+            <rect x="806" y="128" width="186" height="46" fill="var(--paper-form)" stroke="var(--ask)" stroke-width="1.6"/>
+            <text x="822" y="150" fill="var(--ask)" font-weight="600" font-family="var(--mono)">require_approval</text>
+            <text x="822" y="165" font-size="11" fill="var(--ink-3)" font-family="var(--mono)">pages a human · §03</text>
+
+            <rect x="806" y="222" width="186" height="46" fill="var(--paper-form)" stroke="var(--deny)" stroke-width="1.6"/>
+            <text x="822" y="244" fill="var(--deny)" font-weight="600" font-family="var(--mono)">deny · exit 126</text>
+            <text x="822" y="259" font-size="11" fill="var(--ink-3)" font-family="var(--mono)">the agent is told why</text>
+          </g>
+
+          <!-- audit bar -->
+          <rect x="220" y="306" width="526" height="30" fill="var(--paper-raised)" stroke="var(--ink)" stroke-dasharray="3 3"/>
+          <text x="236" y="326" font-size="11.5" font-family="var(--mono)" fill="var(--ink-2)">audit log — every verdict, hash-chained, Ed25519-sealed · §04</text>
+        </g>
+
+        <defs>
+          <marker id="ah" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0 0.6 L7 4 L0 7.4 Z" fill="var(--ink)" opacity=".7"/>
+          </marker>
+        </defs>
+
+        <g stroke="var(--ink)" stroke-width="1" fill="none" opacity=".5">
+          <!-- inbound bus: agent -> four channels -->
+          <path d="M160 156h30"/>
+          <path d="M190 43v216"/>
+          <path d="M190 43h26" marker-end="url(#ah)"/>
+          <path d="M190 115h26" marker-end="url(#ah)"/>
+          <path d="M190 187h26" marker-end="url(#ah)"/>
+          <path d="M190 259h26" marker-end="url(#ah)"/>
+          <!-- outbound bus: channels -> policy engine -->
+          <path d="M476 43h34M476 115h34M476 187h34M476 259h34"/>
+          <path d="M510 43v216"/>
+          <path d="M510 156h32" marker-end="url(#ah)"/>
+          <!-- verdicts -->
+          <path d="M746 156h34"/>
+          <path d="M780 57v188"/>
+          <path d="M780 57h22" marker-end="url(#ah)"/>
+          <path d="M780 151h22" marker-end="url(#ah)"/>
+          <path d="M780 245h22" marker-end="url(#ah)"/>
+          <!-- to the record -->
+          <path d="M646 214v92" stroke-dasharray="3 3"/>
+        </g>
+      </svg>
+      <figcaption>Every channel is policy-evaluated before the syscall happens. On macOS the filesystem and
+        network rules are additionally enforced by the kernel, so a direct <code translate="no">/bin/rm</code> that
+        skips the shim still hits a wall.</figcaption>
+    </figure>
+
+    <div class="rows">
+      <div class="row">
+        <p class="row-tag">01</p>
+        <div><h3>MCP tool calls</h3><p class="row-kicker">stdio proxy</p></div>
+        <p>Point your MCP server config at <code translate="no">agentvault mcp</code>. Every tool call is parsed,
+          matched against policy, and logged before it reaches the server.</p>
+      </div>
+      <div class="row">
+        <p class="row-tag">02</p>
+        <div><h3>Shell commands</h3><p class="row-kicker">PATH shims</p></div>
+        <p><code translate="no">rm</code>, <code translate="no">git</code>, <code translate="no">curl</code> and friends
+          resolve to AgentVault first. It evaluates, then execs the real binary — or refuses and tells the agent
+          which rule fired, so it stops retrying.</p>
+      </div>
+      <div class="row">
+        <p class="row-tag">03</p>
+        <div><h3>Network egress</h3><p class="row-kicker">CONNECT proxy</p></div>
+        <p>Proxy environment plus a kernel-level <code translate="no">deny network-outbound</code> forces TCP through
+          the proxy, where you allowlist hosts. Payload inspection is out of scope by design: decisions are
+          host and port.</p>
+      </div>
+      <div class="row">
+        <p class="row-tag">04</p>
+        <div><h3>Filesystem</h3><p class="row-kicker">kernel Seatbelt</p></div>
+        <p>The child runs under a Seatbelt profile generated from the same YAML. Credential paths are denied at the
+          syscall layer — reachable by neither shim nor bypass.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ════ 02 POLICY ═══════════════════════════════════════════════════════ -->
+<section class="clause" id="policy">
+  <div class="clause-mark">§02<i>The policy</i></div>
+  <div>
+    <h2>One file, every agent</h2>
+    <p class="clause-lede">Vendor sandboxes each speak their own permission dialect, and only protect their own
+      agent. AgentVault reads one declarative policy — the same file whether the request arrives from Claude Code,
+      OpenCode, or a bash script — so you write rules once and get one approval inbox and one log across all of them.</p>
+
+    <div class="split">
+      <figure class="code">
+        <figcaption><span translate="no">agentvault.yaml</span><span>excerpt</span></figcaption>
+<pre aria-label="Example AgentVault policy"><span class="k">version</span>: 1
+
+<span class="k">defaults</span>:
+  <span class="k">action</span>: <span class="n">deny</span>                <span class="c"># unmatched = nothing runs</span>
+  <span class="k">approval_timeout</span>: 60s
+
+<span class="k">rules</span>:
+  - <span class="k">name</span>: <span class="s">protect-credentials</span>
+    <span class="k">match</span>:
+      <span class="k">action</span>: [fs.read, fs.write, fs.delete]
+      <span class="k">path</span>: ["~/.ssh/**", "~/.aws/**", "~/.config/gcloud/**"]
+    <span class="k">effect</span>: <span class="n">deny</span>
+    <span class="k">message</span>: <span class="s">"Credential paths are off-limits to agents."</span>
+
+  - <span class="k">name</span>: <span class="s">git-push-ask</span>
+    <span class="k">match</span>:
+      <span class="k">action</span>: [shell.exec]
+      <span class="k">cel</span>: <span class="s">'event.cmd == "git" &amp;&amp; event.argv[1] == "push"'</span>
+    <span class="k">effect</span>: <span class="n">require_approval</span>
+    <span class="k">message</span>: <span class="s">"Pushing code requires your approval."</span>
+
+  - <span class="k">name</span>: <span class="s">workdir-is-free</span>
+    <span class="k">match</span>: {<span class="k">action</span>: [fs.read, fs.write], <span class="k">path</span>: ["./**"]}
+    <span class="k">effect</span>: <span class="n">allow</span>
+
+<span class="k">approvals</span>:
+  <span class="k">timeout</span>: 60s
+  <span class="k">channels</span>:
+    <span class="k">tty</span>:
+      <span class="k">enabled</span>: <span class="n">true</span>
+    <span class="k">macos</span>:
+      <span class="k">enabled</span>: <span class="n">true</span>
+    <span class="k">telegram</span>:
+      <span class="k">enabled</span>: <span class="n">true</span>
+      <span class="k">bot_token_env</span>: AGENTVAULT_TELEGRAM_TOKEN
+      <span class="k">chat_id_env</span>: AGENTVAULT_TELEGRAM_CHAT_ID</pre>
+      </figure>
+
+      <div>
+        <div class="rows" style="margin-top:0">
+          <div class="row" style="grid-template-columns:minmax(0,1fr)">
+            <div><h3>Expressions, not just globs</h3></div>
+            <p>CEL conditions see the parsed command and its arguments, so <code translate="no">git push</code> can be
+              treated differently from <code translate="no">git status</code> without a wrapper script.</p>
+          </div>
+          <div class="row" style="grid-template-columns:minmax(0,1fr)">
+            <div><h3>Approvals fail closed</h3></div>
+            <p>A timeout is a denial, not a pass. The agent is told which rule fired and how to ask you properly.</p>
+          </div>
+          <div class="row" style="grid-template-columns:minmax(0,1fr)">
+            <div><h3>Validate before you run</h3></div>
+            <p><code translate="no">agentvault policy check</code> rejects a bad rule at write time rather than at the
+              moment it mattered.</p>
+          </div>
+        </div>
+
+        <h3 class="sub-h">Five starting policies</h3>
+        <p class="sub-note">Each is one file you can read in a minute.</p>
+        <dl class="recipes">
+          <div>
+            <dt><a href="https://github.com/aashish254/agentvault/blob/main/docs/recipes/repo-only.yaml" translate="no">repo-only</a></dt>
+            <dd>Read and write inside the project, nowhere else. On macOS, writes outside it are physically impossible.</dd>
+          </div>
+          <div>
+            <dt><a href="https://github.com/aashish254/agentvault/blob/main/docs/recipes/protect-dotfiles.yaml" translate="no">protect-dotfiles</a></dt>
+            <dd>Work normally, but keys, credentials and shell history are off-limits at the kernel layer.</dd>
+          </div>
+          <div>
+            <dt><a href="https://github.com/aashish254/agentvault/blob/main/docs/recipes/read-only-reviewer.yaml" translate="no">read-only-reviewer</a></dt>
+            <dd>For review and audit agents: read anything in the project, change not one byte.</dd>
+          </div>
+          <div>
+            <dt><a href="https://github.com/aashish254/agentvault/blob/main/docs/recipes/no-network-except-github.yaml" translate="no">no-network-except-github</a></dt>
+            <dd>GitHub and your model provider only. Unknown hosts need your approval; raw sockets are blocked.</dd>
+          </div>
+          <div>
+            <dt><a href="https://github.com/aashish254/agentvault/blob/main/docs/recipes/safe-autopilot.yaml" translate="no">safe-autopilot</a></dt>
+            <dd>Run unattended for hours. Routine work flows; anything destructive, irreversible or leaky pages your phone.</dd>
+          </div>
+        </dl>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ════ 03 APPROVALS ════════════════════════════════════════════════════ -->
+<section class="clause" id="approvals">
+  <div class="clause-mark">§03<i>Human in the loop</i></div>
+  <div>
+    <h2>Approvals reach you, not the terminal you forgot about</h2>
+    <p class="clause-lede">A rule that says <code translate="no">require_approval</code> can page you on any of three
+      channels at once. Each shows the rule that fired, the exact command and the directory it acts in — the two
+      remote ones also show the moment the request expires, so you are never guessing what a yes covers.</p>
+
+    <div class="channels">
+      <div class="channel">
+        <div class="channel-meta">
+          <p class="row-kicker">while you’re at the machine</p>
+          <h3>Native macOS dialog</h3>
+          <p>A real system popup, not a terminal box the agent could script around. One tap approves this action or
+            the whole rule.</p>
+        </div>
+        <div class="mock" role="img" aria-label="The macOS dialog as the code renders it: title AgentVault — agent requests permission, body Rule: destructive-asks, the command rm -rf src, the directory, and three buttons — Always Allow, Allow Once, and Deny as the default">
+          <p class="mock-title">AgentVault — agent requests permission</p>
+          <span class="l">Rule: <span translate="no">destructive-asks</span></span>
+          <span class="l l-cmd" translate="no">$ rm -rf src</span>
+          <span class="l">Directory: <span translate="no">~/work/app</span></span>
+          <div class="mock-btns" aria-hidden="true"><span>Always Allow</span><span>Allow Once</span><span class="b-default">Deny</span></div>
+          <p class="mock-note">Deny is both the default and the cancel button — a dismissed dialog denied.</p>
+        </div>
+      </div>
+
+      <div class="channel">
+        <div class="channel-meta">
+          <p class="row-kicker">while you’re away</p>
+          <h3>Telegram, on your phone</h3>
+          <p>The same request, pushed to you. The agent blocks until you answer or the timeout denies it —
+            so leaving is safe, not careless.</p>
+        </div>
+        <div class="mock" role="img" aria-label="The Telegram message as the code sends it: AgentVault approval requested, rule git-push-ask, the command git push origin main, the working directory, an expiry time, and three inline buttons — Allow once, Allow rule, Deny">
+          <p class="mock-title">🛡 AgentVault — approval requested</p>
+          <span class="l">Rule: <span translate="no">git-push-ask</span></span>
+          <span class="l l-cmd" translate="no">$ git push origin main</span>
+          <span class="l">cwd: <span translate="no">~/agentvault</span></span>
+          <span class="l">expires: <span translate="no">14:22:07</span></span>
+          <div class="mock-btns" aria-hidden="true"><span class="b-allow">✅ Allow once</span><span>🔁 Allow rule</span><span class="b-deny">❌ Deny</span></div>
+          <p class="mock-note">Your reply replaces the message, so you can see the agent moved.</p>
+        </div>
+      </div>
+
+      <div class="channel">
+        <div class="channel-meta">
+          <p class="row-kicker">while you’re watching</p>
+          <h3>Terminal prompt</h3>
+          <p>For interactive runs. The denial message is written for the agent to read, which is why it stops
+            retrying instead of trying a cleverer path. This one is from the recorded demo run, which used a
+            4-second timeout so the denial lands on camera; the shipped default is 60s.</p>
+        </div>
+        <div class="mock" role="img" aria-label="The terminal approval prompt exactly as the tty channel prints it, with the y, a and N choices, and the denial line the agent then sees">
+          <span class="l">🛡 AgentVault — approval requested (rule <b>"destructive-asks"</b>)</span>
+          <span class="l">  <span translate="no">$ rm -rf src</span></span>
+          <span class="l">  cwd: <span translate="no">~/work/app</span></span>
+          <span class="l">  [y] allow once · [a] allow this rule · [N] deny  (expires <span translate="no">14:22:07</span>):</span>
+          <span class="l l-out">  agentvault: denied by rule "destructive-asks": approval timed out</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ════ 04 RECORD ═══════════════════════════════════════════════════════ -->
+<section class="clause" id="record">
+  <div class="clause-mark">§04<i>The record</i></div>
+  <div>
+    <h2>What ran, what was refused, and proof nobody edited it</h2>
+    <p class="clause-lede">Every request becomes a row: action, verdict, the rule that decided it, how long it
+      waited. Rows are hash-chained in local SQLite, and the chain head is Ed25519-signed when the session closes
+      with a key that is then destroyed. <code translate="no">agentvault verify</code> reports
+      <code translate="no">OK</code> — or tells you exactly where the chain broke.</p>
+
+    <div class="table-scroll ledger">
+      <table>
+        <caption>The first three rows are verbatim from a real session — <code translate="no">agentvault log --export json</code>,
+          2026-09-22, darwin/arm64, latencies measured not estimated. The last two are the MCP-proxy path asserted by
+          <code translate="no">test/e2e/mcp_test.go</code>, which asserts these verdicts and rule names; that export is
+          abridged, so their eval times are not shown.</caption>
+        <thead>
+          <tr><th scope="col">Action</th><th scope="col">Target</th><th scope="col">Verdict</th><th scope="col">Rule</th><th scope="col" class="num">Eval</th><th scope="col">Source</th></tr>
+        </thead>
+        <tbody>
+          <tr><td translate="no">shell.exec</td><td translate="no">rm -rf src</td><td class="v-deny">deny</td><td translate="no">destructive-asks</td><td class="num">210 µs</td><td class="chain"><b>shim</b> · waited 4.0s</td></tr>
+          <tr><td translate="no">net.egress</td><td translate="no">example.com:443</td><td class="v-deny">deny</td><td translate="no">net-egress-ask</td><td class="num">7 µs</td><td class="chain"><b>egress</b></td></tr>
+          <tr><td translate="no">net.egress</td><td translate="no">github.com:443</td><td class="v-allow">allow</td><td translate="no">egress.allow_hosts</td><td class="num">13 µs</td><td class="chain"><b>egress</b></td></tr>
+          <tr><td translate="no">fs.delete</td><td translate="no">~/.ssh/id_rsa</td><td class="v-deny">deny</td><td translate="no">protect-credentials</td><td class="num">—</td><td class="chain"><b>mcp</b></td></tr>
+          <tr><td translate="no">fs.read</td><td translate="no">src/app.txt</td><td class="v-allow">allow</td><td translate="no">workdir-is-free</td><td class="num">—</td><td class="chain"><b>mcp</b></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <figure class="evidence">
+      <img src="img/demo-run.png" width="1086" height="537" loading="lazy"
+           alt="Terminal recording of a run: agentvault run -- bash reports the kernel sandbox on. The agent tries rm -rf /tmp/important; agentvault denies it by rule block-destructive-shell. The agent prints rm exit code: 126, says fine, ls then, and ls /tmp is allowed. Then agentvault log --export json | tail -2 prints two JSON rows with event and session ids.">
+      <figcaption>A recorded run end to end — <code translate="no">scripts/demo.sh</code>, captured with asciinema.
+        The denial names the rule, the agent reads exit code 126 and switches to a command the policy allows, and
+        both verdicts land in the export. <a href="img/demo.gif">Watch it</a>
+        (<code translate="no">docs/img/demo.gif</code>, 37&nbsp;KB).</figcaption>
+    </figure>
+
+    <div class="rows">
+      <div class="row">
+        <p class="row-tag">05</p>
+        <div><h3>What the log guarantees</h3><p class="row-kicker">and what it does not</p></div>
+        <p>It proves <em>what was recorded</em>. It cannot prove an unrecorded action never happened — that is what
+          the kernel layer is for, and the honest boundary is documented in
+          <a href="https://github.com/aashish254/agentvault/blob/main/SECURITY.md">SECURITY.md</a>.</p>
+      </div>
+      <div class="row">
+        <p class="row-tag">06</p>
+        <div><h3>Live view</h3><p class="row-kicker"><span translate="no">agentvault log</span></p></div>
+        <p>A terminal UI that tails verdicts as they happen, with the rule and latency for each. Useful in the moment;
+          the sealed chain is what matters afterwards.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ════ 05 PROOF ════════════════════════════════════════════════════════ -->
+<section class="clause" id="proof">
+  <div class="clause-mark">§05<i>Measured, not claimed</i></div>
+  <div>
+    <h2>103 attacks, executed for real</h2>
+    <p class="clause-lede">A sandbox that blocks nothing is easy to spot. A sandbox that blocks <em>almost</em>
+      nothing is not — so the corpus runs 103 distinct attack variants under every sandbox installed on the host,
+      and each variant is <b>first proven to succeed with no sandbox</b>. Otherwise the block is theatre.</p>
+    <p class="clause-lede">13 destructive · 52 credential-theft · 10 exfiltration · 16 evasion · 12 persistence.
+      Reproduce it: <code translate="no">make corpus</code>, or
+      <code translate="no">go test -v -run TestCompareMatrix ./test/redteam/</code>.</p>
+
+    <figure class="chart">
+      <p class="chart-title">Attacks blocked, of 103 variants</p>
+      <p class="chart-sub">Same host, same scripts, each tool at its own default configuration.
+        Skipped variants are never counted as blocks.</p>
+      <!-- BEGIN GENERATED: BARS -->
+<svg viewBox="0 0 900 354" role="img" aria-labelledby="bars-t" width="900" height="354" preserveAspectRatio="xMidYMid meet">
+<title id="bars-t">Attacks blocked per tool, of 103 real executed attack variants</title>
+<line x1="208.0" y1="18" x2="208.0" y2="292" stroke="var(--rule)" stroke-width="1" stroke-dasharray=""/>
+<text x="208.0" y="308" text-anchor="" fill="var(--ink-3)" font-size="11" font-family="var(--mono)">0%</text>
+<line x1="357.0" y1="18" x2="357.0" y2="292" stroke="var(--rule)" stroke-width="1" stroke-dasharray="2 4"/>
+<text x="357.0" y="308" text-anchor="middle" fill="var(--ink-3)" font-size="11" font-family="var(--mono)">25%</text>
+<line x1="506.0" y1="18" x2="506.0" y2="292" stroke="var(--rule)" stroke-width="1" stroke-dasharray="2 4"/>
+<text x="506.0" y="308" text-anchor="middle" fill="var(--ink-3)" font-size="11" font-family="var(--mono)">50%</text>
+<line x1="655.0" y1="18" x2="655.0" y2="292" stroke="var(--rule)" stroke-width="1" stroke-dasharray="2 4"/>
+<text x="655.0" y="308" text-anchor="middle" fill="var(--ink-3)" font-size="11" font-family="var(--mono)">75%</text>
+<line x1="804.0" y1="18" x2="804.0" y2="292" stroke="var(--rule)" stroke-width="1" stroke-dasharray="2 4"/>
+<text x="804.0" y="308" text-anchor="middle" fill="var(--ink-3)" font-size="11" font-family="var(--mono)">100%</text>
+<text x="194" y="47" text-anchor="end" fill="var(--ink)" font-size="14" font-weight="500" font-family="var(--sans)">AgentVault</text>
+<text x="194" y="63" text-anchor="end" fill="var(--ink-3)" font-size="11" font-family="var(--mono)">103 of 103</text>
+<rect x="208" y="36" width="596.0" height="26" fill="var(--allow)"/>
+<text x="814.0" y="54" fill="var(--ink-2)" font-size="12.5" font-family="var(--mono)">100.0%</text>
+<text x="194" y="103" text-anchor="end" fill="var(--ink)" font-size="14" font-weight="500" font-family="var(--sans)">srt (Claude Code)</text>
+<text x="194" y="119" text-anchor="end" fill="var(--ink-3)" font-size="11" font-family="var(--mono)">103 of 103</text>
+<rect x="208" y="92" width="596.0" height="26" fill="var(--ink-2)"/>
+<text x="814.0" y="110" fill="var(--ink-2)" font-size="12.5" font-family="var(--mono)">100.0%</text>
+<text x="194" y="159" text-anchor="end" fill="var(--ink)" font-size="14" font-weight="500" font-family="var(--sans)">Codex CLI</text>
+<text x="194" y="175" text-anchor="end" fill="var(--ink-3)" font-size="11" font-family="var(--mono)">22 of 103</text>
+<rect x="208" y="148" width="127.3" height="26" fill="var(--ink-2)"/>
+<text x="345.3" y="166" fill="var(--ink-2)" font-size="12.5" font-family="var(--mono)">21.4%</text>
+<text x="194" y="215" text-anchor="end" fill="var(--ink)" font-size="14" font-weight="500" font-family="var(--sans)">Docker</text>
+<text x="194" y="231" text-anchor="end" fill="var(--ink-3)" font-size="11" font-family="var(--mono)">4 of 103</text>
+<rect x="208" y="204" width="23.1" height="26" fill="var(--ink-2)"/>
+<text x="241.1" y="222" fill="var(--ink-2)" font-size="12.5" font-family="var(--mono)">3.9%  (11 skipped)</text>
+<text x="194" y="271" text-anchor="end" fill="var(--ink)" font-size="14" font-weight="500" font-family="var(--sans)">No sandbox</text>
+<text x="194" y="287" text-anchor="end" fill="var(--ink-3)" font-size="11" font-family="var(--mono)">0 of 103</text>
+<rect x="208" y="260" width="1.5" height="26" fill="var(--skip)"/>
+<text x="219.5" y="278" fill="var(--ink-2)" font-size="12.5" font-family="var(--mono)">0.0%</text>
+</svg>
+<!-- END GENERATED: BARS -->
+    </figure>
+
+    <div class="table-scroll">
+      <!-- BEGIN GENERATED: CATEGORY MATRIX -->
+<table class="matrix">
+<caption>Attacks blocked by category. Every variant was first proven to succeed with no sandbox, so a block is a real stop, not a broken test. Run 2026-09-22 · darwin/arm64.</caption>
+<thead><tr><th scope="col">Category</th><th scope="col" class="num">Variants</th>
+<th scope="col" class="num">AgentVault</th>
+<th scope="col" class="num">srt (Claude Code)</th>
+<th scope="col" class="num">Codex CLI</th>
+<th scope="col" class="num">Docker</th>
+<th scope="col" class="num">No sandbox</th>
+</tr></thead>
+<tbody>
+<tr><th scope="row">destructive</th><td class="num">13</td>
+<td class="num v-allow">13/13</td>
+<td class="num v-allow">13/13</td>
+<td class="num v-deny">0/13</td>
+<td class="num v-deny">0/13<span class=v-skip>+1 skip</span></td>
+<td class="num v-deny">0/13</td>
+</tr>
+<tr><th scope="row">credential-theft</th><td class="num">52</td>
+<td class="num v-allow">52/52</td>
+<td class="num v-allow">52/52</td>
+<td class="num v-deny">0/52</td>
+<td class="num v-deny">0/52</td>
+<td class="num v-deny">0/52</td>
+</tr>
+<tr><th scope="row">exfiltration</th><td class="num">10</td>
+<td class="num v-allow">10/10</td>
+<td class="num v-allow">10/10</td>
+<td class="num v-allow">10/10</td>
+<td class="num v-ask">3/10<span class=v-skip>+7 skip</span></td>
+<td class="num v-deny">0/10</td>
+</tr>
+<tr><th scope="row">evasion</th><td class="num">16</td>
+<td class="num v-allow">16/16</td>
+<td class="num v-allow">16/16</td>
+<td class="num v-deny">0/16</td>
+<td class="num v-ask">1/16<span class=v-skip>+2 skip</span></td>
+<td class="num v-deny">0/16</td>
+</tr>
+<tr><th scope="row">persistence</th><td class="num">12</td>
+<td class="num v-allow">12/12</td>
+<td class="num v-allow">12/12</td>
+<td class="num v-allow">12/12</td>
+<td class="num v-deny">0/12<span class=v-skip>+1 skip</span></td>
+<td class="num v-deny">0/12</td>
+</tr>
+<tr><th scope="row">Total</th><td class="num">103</td>
+<td class="num v-allow">103/103</td>
+<td class="num v-allow">103/103</td>
+<td class="num v-deny">22/103</td>
+<td class="num v-deny">4/103</td>
+<td class="num v-deny">0/103</td>
+</tbody>
+</table>
+<!-- END GENERATED: CATEGORY MATRIX -->
+    </div>
+
+    <p class="footnote">Reading the columns honestly: <b>srt</b> (what Claude Code sandboxes with) ties AgentVault at
+      103/103 — and §06 shows what that tie costs. <b>Codex CLI</b>’s default profile blocks all network exfiltration
+      and out-of-workspace persistence, but allows full-disk reads and any write inside your project: that is a
+      deliberate trade-off, not a bug — it just puts credential theft and <code translate="no">rm -rf</code> of your
+      working tree outside its default threat model. <b>Docker</b> with a writable bind mount is not a sandbox; every
+      filesystem attack landed. <b>OpenCode</b> has no OS-level sandbox at all, so it is the no-sandbox column once a
+      command is approved.</p>
+  </div>
+</section>
+
+<!-- ════ 06 SECOND AXIS ══════════════════════════════════════════════════ -->
+<section class="clause" id="scorecard">
+  <div class="clause-mark">§06<i>The axis benchmarks hide</i></div>
+  <div>
+    <h2>Security that stops the work gets switched off</h2>
+    <p class="clause-lede">“Attacks blocked” is a gameable number: deny everything and you score 100%. So the same
+      run measures eight everyday operations an agent must perform to be useful — read a file, edit it, build,
+      commit, push, fetch a package — under the same tools with the same defaults.</p>
+
+    <div class="table-scroll">
+      <!-- BEGIN GENERATED: LEGIT MATRIX -->
+<table class="matrix">
+<caption>The same eight everyday operations, under the same default configs. A tool that blocks all work is not safer — it gets switched off. &#10003; allowed · &#10007; blocked · &ndash; skipped, binary missing in the image. Run 2026-09-22 · darwin/arm64.</caption>
+<thead><tr><th scope="col">Operation</th>
+<th scope="col" class="num">AgentVault</th>
+<th scope="col" class="num">srt (Claude Code)</th>
+<th scope="col" class="num">Codex CLI</th>
+<th scope="col" class="num">Docker</th>
+<th scope="col" class="num">No sandbox</th>
+</tr></thead>
+<tbody>
+<tr><th scope="row"><span class="mono">L-01</span> read project source (cat/grep)</th>
+<td class="num v-allow">&#10003;</td>
+<td class="num v-allow">&#10003;</td>
+<td class="num v-allow">&#10003;</td>
+<td class="num v-allow">&#10003;</td>
+<td class="num v-allow">&#10003;</td>
+</tr>
+<tr><th scope="row"><span class="mono">L-02</span> edit a source file (append)</th>
+<td class="num v-allow">&#10003;</td>
+<td class="num v-deny">&#10007;</td>
+<td class="num v-allow">&#10003;</td>
+<td class="num v-allow">&#10003;</td>
+<td class="num v-allow">&#10003;</td>
+</tr>
+<tr><th scope="row"><span class="mono">L-03</span> create build output (mkdir + artifact)</th>
+<td class="num v-allow">&#10003;</td>
+<td class="num v-deny">&#10007;</td>
+<td class="num v-allow">&#10003;</td>
+<td class="num v-allow">&#10003;</td>
+<td class="num v-allow">&#10003;</td>
+</tr>
+<tr><th scope="row"><span class="mono">L-04</span> git status</th>
+<td class="num v-allow">&#10003;</td>
+<td class="num v-allow">&#10003;</td>
+<td class="num v-allow">&#10003;</td>
+<td class="num v-skip">&ndash;</td>
+<td class="num v-allow">&#10003;</td>
+</tr>
+<tr><th scope="row"><span class="mono">L-05</span> git commit</th>
+<td class="num v-allow">&#10003;</td>
+<td class="num v-deny">&#10007;</td>
+<td class="num v-allow">&#10003;</td>
+<td class="num v-skip">&ndash;</td>
+<td class="num v-allow">&#10003;</td>
+</tr>
+<tr><th scope="row"><span class="mono">L-06</span> run the project test script</th>
+<td class="num v-allow">&#10003;</td>
+<td class="num v-allow">&#10003;</td>
+<td class="num v-allow">&#10003;</td>
+<td class="num v-allow">&#10003;</td>
+<td class="num v-allow">&#10003;</td>
+</tr>
+<tr><th scope="row"><span class="mono">L-07</span> fetch package metadata (https)</th>
+<td class="num v-allow">&#10003;</td>
+<td class="num v-deny">&#10007;</td>
+<td class="num v-deny">&#10007;</td>
+<td class="num v-deny">&#10007;</td>
+<td class="num v-allow">&#10003;</td>
+</tr>
+<tr><th scope="row"><span class="mono">L-08</span> git push to a remote</th>
+<td class="num v-allow">&#10003;</td>
+<td class="num v-deny">&#10007;</td>
+<td class="num v-deny">&#10007;</td>
+<td class="num v-skip">&ndash;</td>
+<td class="num v-allow">&#10003;</td>
+</tr>
+</tbody>
+</table>
+<!-- END GENERATED: LEGIT MATRIX -->
+    </div>
+
+    <p class="footnote">AgentVault passes <code translate="no">git push</code> and network egress to
+      <code translate="no">require_approval</code> instead of a static deny — in this battery the harness
+      auto-approves, the scripted equivalent of tapping Allow on your phone. srt’s zero-config default has no approval
+      channel to escalate to, so writes and egress simply fail.</p>
+
+    <figure class="chart">
+      <p class="chart-title">Both axes, one point per tool</p>
+      <p class="chart-sub">Only the top-right quadrant is both safe and usable. Deny-everything sits top-left;
+        no protection sits bottom-right. Percentages use each tool’s own executed denominator.</p>
+      <!-- BEGIN GENERATED: SCORECARD -->
+<svg viewBox="0 0 660 560" role="img" aria-labelledby="quad-t" width="660" height="560" preserveAspectRatio="xMidYMid meet">
+<title id="quad-t">Security against usability: attacks blocked versus legitimate work allowed, one point per tool</title>
+<rect x="354.0" y="34.0" width="280.0" height="226.0" fill="var(--allow)" opacity=".07"/>
+<rect x="74.0" y="34.0" width="280.0" height="226.0" fill="var(--ask)" opacity=".07"/>
+<rect x="354.0" y="260.0" width="280.0" height="226.0" fill="var(--deny)" opacity=".06"/>
+<rect x="74.0" y="260.0" width="280.0" height="226.0" fill="var(--skip)" opacity=".07"/>
+<line x1="354.0" y1="34.0" x2="354.0" y2="486.0" stroke="var(--rule)" stroke-dasharray="3 4"/>
+<line x1="74.0" y1="260.0" x2="634.0" y2="260.0" stroke="var(--rule)" stroke-dasharray="3 4"/>
+<rect x="74.0" y="34.0" width="560" height="452" fill="none" stroke="var(--ink)"/>
+<text x="74.0" y="508" text-anchor="middle" fill="var(--ink-3)" font-size="11" font-family="var(--mono)">0%</text>
+<text x="62" y="490.0" text-anchor="end" fill="var(--ink-3)" font-size="11" font-family="var(--mono)">0%</text>
+<text x="214.0" y="508" text-anchor="middle" fill="var(--ink-3)" font-size="11" font-family="var(--mono)">25%</text>
+<text x="62" y="377.0" text-anchor="end" fill="var(--ink-3)" font-size="11" font-family="var(--mono)">25%</text>
+<text x="354.0" y="508" text-anchor="middle" fill="var(--ink-3)" font-size="11" font-family="var(--mono)">50%</text>
+<text x="62" y="264.0" text-anchor="end" fill="var(--ink-3)" font-size="11" font-family="var(--mono)">50%</text>
+<text x="494.0" y="508" text-anchor="middle" fill="var(--ink-3)" font-size="11" font-family="var(--mono)">75%</text>
+<text x="62" y="151.0" text-anchor="end" fill="var(--ink-3)" font-size="11" font-family="var(--mono)">75%</text>
+<text x="634.0" y="508" text-anchor="middle" fill="var(--ink-3)" font-size="11" font-family="var(--mono)">100%</text>
+<text x="62" y="38.0" text-anchor="end" fill="var(--ink-3)" font-size="11" font-family="var(--mono)">100%</text>
+<text x="354" y="544" text-anchor="middle" fill="var(--ink-2)" font-size="12.5" font-family="var(--sans)">legitimate work allowed — 8 everyday dev operations</text>
+<text transform="rotate(-90 20 260)" x="20" y="260" text-anchor="middle" fill="var(--ink-2)" font-size="12.5" font-family="var(--sans)">attacks blocked — 103 executed variants</text>
+<text x="82" y="52" text-anchor="start" fill="var(--ink-3)" font-size="11.5" font-style="italic" font-family="var(--sans)">secure, but the work stops</text>
+<text x="626" y="246" text-anchor="end" fill="var(--ink-3)" font-size="11.5" font-style="italic" font-family="var(--sans)">secure AND usable</text>
+<polygon points="634.0,23.0 636.7,30.3 644.5,30.6 638.4,35.4 640.5,42.9 634.0,38.6 627.5,42.9 629.6,35.4 623.5,30.6 631.3,30.3" fill="var(--allow)" stroke="var(--ink)" stroke-width="1.2"/>
+<text x="616.0" y="49.0" text-anchor="end" fill="var(--ink)" font-size="13" font-weight="500" font-family="var(--sans)">AgentVault</text>
+<text x="616.0" y="62.0" text-anchor="end" fill="var(--ink-3)" font-size="11" font-family="var(--mono)">8/8 work</text>
+<text x="616.0" y="74.0" text-anchor="end" fill="var(--ink-3)" font-size="11" font-family="var(--mono)">103/103 blocked</text>
+<circle cx="284.0" cy="34.0" r="6.5" fill="var(--ink-2)" stroke="var(--paper-form)" stroke-width="1.5"/>
+<text x="284.0" y="65.0" text-anchor="middle" fill="var(--ink)" font-size="13" font-weight="500" font-family="var(--sans)">srt (Claude Code)</text>
+<text x="284.0" y="78.0" text-anchor="middle" fill="var(--ink-3)" font-size="11" font-family="var(--mono)">3/8 work</text>
+<text x="284.0" y="90.0" text-anchor="middle" fill="var(--ink-3)" font-size="11" font-family="var(--mono)">103/103 blocked</text>
+<circle cx="494.0" cy="389.5" r="6.5" fill="var(--ink-2)" stroke="var(--paper-form)" stroke-width="1.5"/>
+<text x="494.0" y="343.5" text-anchor="middle" fill="var(--ink)" font-size="13" font-weight="500" font-family="var(--sans)">Codex CLI</text>
+<text x="494.0" y="356.5" text-anchor="middle" fill="var(--ink-3)" font-size="11" font-family="var(--mono)">6/8 work</text>
+<text x="494.0" y="368.5" text-anchor="middle" fill="var(--ink-3)" font-size="11" font-family="var(--mono)">22/103 blocked</text>
+<circle cx="522.0" cy="466.3" r="6.5" fill="var(--ink-2)" stroke="var(--paper-form)" stroke-width="1.5"/>
+<text x="522.0" y="410.3" text-anchor="middle" fill="var(--ink)" font-size="13" font-weight="500" font-family="var(--sans)">Docker</text>
+<text x="522.0" y="423.3" text-anchor="middle" fill="var(--ink-3)" font-size="11" font-family="var(--mono)">4/5 work</text>
+<text x="522.0" y="435.3" text-anchor="middle" fill="var(--ink-3)" font-size="11" font-family="var(--mono)">4/92 blocked</text>
+<circle cx="634.0" cy="486.0" r="6.5" fill="var(--deny)" stroke="var(--paper-form)" stroke-width="1.5"/>
+<text x="624.0" y="452.0" text-anchor="end" fill="var(--ink)" font-size="13" font-weight="500" font-family="var(--sans)">No sandbox</text>
+<text x="624.0" y="465.0" text-anchor="end" fill="var(--ink-3)" font-size="11" font-family="var(--mono)">8/8 work</text>
+<text x="624.0" y="477.0" text-anchor="end" fill="var(--ink-3)" font-size="11" font-family="var(--mono)">0/103 blocked</text>
+</svg>
+<!-- END GENERATED: SCORECARD -->
+    </figure>
+  </div>
+</section>
+
+<!-- ════ 07 COMPARE ══════════════════════════════════════════════════════ -->
+<section class="clause" id="compare">
+  <div class="clause-mark">§07<i>Against the alternatives</i></div>
+  <div>
+    <h2>Use the vendor sandbox. Until you need the rest</h2>
+    <p class="clause-lede">If you run exactly one agent, never leave it unattended, and don’t need to prove what it
+      did — use the sandbox built into your agent. It’s free, zero-install and good. AgentVault is for what comes
+      after that: more than one agent, an unattended run, and an audit trail anyone can check.</p>
+
+    <div class="table-scroll">
+      <table class="cmp">
+        <caption>Capability comparison. Sourcing and caveats in
+          <a href="https://github.com/aashish254/agentvault/blob/main/docs/COMPARISON.md">docs/COMPARISON.md</a>.</caption>
+        <thead><tr>
+          <th scope="col">Capability</th><th scope="col">AgentVault</th><th scope="col">Vendor sandboxes</th><th scope="col">Docker / VM</th>
+        </tr></thead>
+        <tbody>
+          <tr><th scope="row">One policy across every agent you run</th><td class="v-allow">Yes</td><td>No — each vendor’s own dialect</td><td>Anything inside, no per-action rules</td></tr>
+          <tr><th scope="row">Tamper-evident, signed audit log</th><td class="v-allow">Yes</td><td class="v-deny">No</td><td class="v-deny">No</td></tr>
+          <tr><th scope="row">Approve from your phone</th><td class="v-allow">Yes</td><td class="v-deny">No — in-terminal only</td><td class="v-deny">No</td></tr>
+          <tr><th scope="row">Kernel-enforced filesystem</th><td class="v-ask">Yes on macOS; Linux and Windows on the roadmap</td><td class="v-ask">Yes, per platform</td><td class="v-allow">Yes, container boundary</td></tr>
+          <tr><th scope="row">Per-command expressions (CEL)</th><td class="v-allow">Yes</td><td class="v-ask">Allow/deny globs, coarse modes</td><td class="v-deny">No</td></tr>
+          <tr><th scope="row">MCP tool-call interception</th><td class="v-allow">Yes, stdio proxy</td><td class="v-ask">Their own tools only</td><td class="v-deny">No</td></tr>
+          <tr><th scope="row">Single static binary, no daemon</th><td class="v-allow">Yes</td><td class="v-allow">Yes</td><td class="v-deny">No</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- ════ 08 GAPS ═════════════════════════════════════════════════════════ -->
+<section class="clause" id="gaps">
+  <div class="clause-mark">§08<i>Where we’re behind</i></div>
+  <div>
+    <h2>The parts that aren’t true yet</h2>
+    <p class="clause-lede">Security tools die on overclaiming, so the gaps go on the landing page rather than in a
+      footnote three clicks away. The red-team battery prints these as KNOWN GAP rows instead of hiding them.</p>
+    <div class="gaps">
+      <ul>
+        <li><b>Linux and Windows kernel enforcement.</b> Those platforms get shims, proxies and the tamper-evident
+          audit today — not confinement. Landlock and Job Objects are the v0.3 roadmap. The 103/103 figure above is a
+          <b>darwin/arm64</b> measurement.</li>
+        <li><b>Maturity.</b> Vendor sandboxes ship with their agent and are exercised by their whole user base.
+          AgentVault is young. The answer is a public test suite and a battery anyone can run, not “trust us”.</li>
+        <li><b>TLS payload inspection.</b> Out of scope by design. Egress decisions are host and port; a permitted
+          host can still be sent anything.</li>
+        <li><b>The log proves what was recorded, not what was possible.</b> An agent that escapes enforcement
+          entirely leaves no row. That is why the kernel layer matters.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ════ 09 START ════════════════════════════════════════════════════════ -->
+<section class="clause" id="start">
+  <div class="clause-mark">§09<i>Sixty seconds</i></div>
+  <div>
+    <h2>Wrap something and watch it get refused</h2>
+    <figure class="code">
+      <figcaption><span>the tour</span><span>macOS · Linux</span></figcaption>
+<pre aria-label="Command tour"><span class="c"># install, then write a policy and install the shims</span>
+<span class="k">$</span> curl -fsSL https://raw.githubusercontent.com/aashish254/agentvault/main/scripts/install.sh | sh
+<span class="k">$</span> agentvault init
+<span class="k">$</span> agentvault policy check                      <span class="c"># validate before you rely on it</span>
+
+<span class="k">$</span> agentvault run -- bash                       <span class="c"># wrap anything: a shell, claude, opencode</span>
+<span class="s">inside:</span>  rm -rf /tmp/x       <span class="k">→ blocked (exit 126), rule named</span>
+<span class="s">inside:</span>  git push            <span class="n">→ your phone pings: allow once / allow rule / deny</span>
+
+<span class="k">$</span> agentvault log                               <span class="c"># live TUI: action, verdict, rule, latency</span>
+<span class="k">$</span> agentvault verify                            <span class="c"># prove nobody edited the log</span></pre>
+    </figure>
+
+    <div class="linklist">
+      <a href="https://github.com/aashish254/agentvault/releases/latest"><span class="t">Download v0.1.0</span><span class="d">Checksummed binaries for macOS, Linux and Windows, amd64 and arm64</span><span class="u">github.com/releases</span></a>
+      <a href="https://github.com/aashish254/agentvault/blob/main/docs/SPEC.md"><span class="t">Read the spec</span><span class="d">Threat model, policy grammar, IPC, and the 8-week roadmap</span><span class="u">docs/SPEC.md</span></a>
+      <a href="https://github.com/aashish254/agentvault/blob/main/docs/redteam/RESULTS.md"><span class="t">Run the red-team battery</span><span class="d"><span translate="no">make redteam</span> · <span translate="no">make compare</span> · <span translate="no">make corpus</span> — results files are committed</span><span class="u">docs/redteam</span></a>
+      <a href="https://github.com/aashish254/agentvault/blob/main/docs/integrations/claude.md"><span class="t">Integrate Claude Code</span><span class="d">Hooks route every tool call through policy before it runs</span><span class="u">docs/integrations</span></a>
+      <a href="https://github.com/aashish254/agentvault/blob/main/docs/integrations/opencode.md"><span class="t">Integrate OpenCode</span><span class="d">One command wraps it — the transcript above came from this pairing</span><span class="u">docs/integrations</span></a>
+      <a href="https://github.com/aashish254/agentvault/blob/main/docs/integrations/openclaw.md"><span class="t">Integrate OpenClaw</span><span class="d">A long-running personal agent wants the supervised, always-on shape</span><span class="u">docs/integrations</span></a>
+      <a href="https://github.com/aashish254/agentvault/issues"><span class="t">Open an issue</span><span class="d">Bugs, missing platform coverage, and policy shapes you wish existed</span><span class="u">github.com/issues</span></a>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <div class="foot-grid">
+      <div>
+        <p class="foot-brand">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true">
+            <rect x="1.85" y="1.85" width="20.3" height="20.3"/>
+            <circle cx="12" cy="12" r="5.7"/>
+            <path stroke-linecap="square" d="M12 6.3V4M12 17.7V20M6.3 12H4M17.7 12H20"/>
+            <circle cx="12" cy="10.7" r="1.55"/>
+            <path stroke-linecap="round" d="M12 12.25V15.1"/>
+          </svg>
+          <span translate="no">AgentVault</span>
+        </p>
+        <p>A runtime permission firewall for AI agents. Kernel-enforced on macOS, auditable everywhere,
+          and yours to audit: Apache-2.0, no cloud, no telemetry.</p>
+      </div>
+      <div>
+        <h2 class="foot-h">Project</h2>
+        <ul>
+          <li><a href="https://github.com/aashish254/agentvault">Repository</a></li>
+          <li><a href="https://github.com/aashish254/agentvault/releases/latest">Releases</a></li>
+          <li><a href="https://github.com/aashish254/agentvault/blob/main/docs/COMPARISON.md">Comparison</a></li>
+          <li><a href="https://github.com/aashish254/agentvault/blob/main/CONTRIBUTING.md">Contributing</a></li>
+        </ul>
+      </div>
+      <div>
+        <h2 class="foot-h">Security</h2>
+        <ul>
+          <li><a href="https://github.com/aashish254/agentvault/blob/main/SECURITY.md">Threat model</a></li>
+          <li><a href="https://github.com/aashish254/agentvault/blob/main/docs/redteam/CORPUS_RESULTS.md">Attack matrix</a></li>
+          <li><a href="https://github.com/aashish254/agentvault/blob/main/docs/redteam/LEGIT_RESULTS.md">Legit-work matrix</a></li>
+          <li><a href="https://github.com/aashish254/agentvault/blob/main/docs/launch/FAQ.md">FAQ</a></li>
+        </ul>
+      </div>
+    </div>
+    <p class="colophon">
+      <span translate="no">Fraunces · Public Sans · JetBrains Mono</span>
+      <span>Self-hosted fonts. No analytics, no third-party requests.</span>
+      <span>Figures regenerate from the measured JSON: <span translate="no">scripts/gen_site_proof.py</span></span>
+    </p>
+  </div>
+</footer>
+
+<script src="assets/site.js"></script>
 </body>
 </html>

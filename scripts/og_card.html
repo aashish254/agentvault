@@ -1,0 +1,72 @@
+<!-- AgentVault social card source -> docs/assets/og.png (1200x630).
+     Render with the same Chrome Playwright loop used for the page:
+       NODE_PATH="<path-to-node_modules>" node -e 'require("playwright").chromium.launch({channel:"chrome"}).then(async b=>{const p=await(await b.newContext({viewport:{width:1200,height:630}})).newPage();await p.goto("file://"+process.cwd()+"/scripts/og_card.html");await p.evaluate(()=>document.fonts.ready);await p.screenshot({path:"docs/assets/og.png"});await b.close()})'
+     Fonts resolve through docs/assets/site.css, so keep that <link> path valid. -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../docs/assets/site.css">
+<style>
+  html, body { margin: 0; padding: 0; background: var(--paper); }
+  .card {
+    position: relative; width: 1200px; height: 630px; overflow: hidden;
+    background: var(--paper); color: var(--ink);
+    font-family: var(--sans);
+  }
+  .frame { position: absolute; inset: 26px; border: 1px solid var(--ink); }
+  .frame::after { content: ""; position: absolute; inset: 7px; border: 1px solid var(--rule); }
+  .body { position: absolute; left: 74px; right: 74px; top: 78px; }
+  .brandline { display: flex; align-items: center; gap: 12px; }
+  .brandline svg { width: 30px; height: 30px; color: var(--ink) }
+  .brandline b { font: 600 25px/1 var(--serif); letter-spacing: -.01em }
+  .brandline span { font: 400 11.5px/1 var(--mono); color: var(--ink-3); letter-spacing: .1em; text-transform: uppercase; margin-left: 4px }
+  h1 { font-family: var(--serif); font-weight: 600; font-size: 68px; line-height: 1.04; letter-spacing: -.022em; margin: 42px 0 0; max-width: 11em }
+  h1 em { font-style: italic; font-weight: 400 }
+  .numbers { display: flex; gap: 34px; margin-top: 38px; font: 400 15px/1.5 var(--mono); color: var(--ink-2) }
+  .numbers i { font-style: normal; color: var(--ink-3) }
+  .numbers b { color: var(--ink); font-weight: 500 }
+  .cmd {
+    position: absolute; left: 74px; bottom: 112px; display: flex; align-items: center;
+    border: 1px solid var(--ink); background: var(--paper-form);
+    font: 400 14px/1 var(--mono);
+  }
+  .cmd .d { padding: 12px 13px; color: var(--ink-3); border-right: 1px solid var(--rule) }
+  .cmd .c { padding: 12px 15px; font-size: 13px }
+  .foot { position: absolute; left: 76px; bottom: 74px; font: 400 13px/1 var(--mono); color: var(--ink-3); letter-spacing: .04em }
+  .stamp {
+    position: absolute; right: 96px; top: 128px;
+    border: 3px solid var(--deny); color: var(--deny);
+    font: 700 22px/1 var(--mono); letter-spacing: .12em; padding: 11px 17px 9px;
+    transform: rotate(-7deg);
+  }
+  .rule { position: absolute; left: 74px; right: 74px; bottom: 176px; height: 1px; background: var(--rule) }
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="frame"></div>
+  <div class="body">
+    <div class="brandline">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true">
+        <rect x="1.85" y="1.85" width="20.3" height="20.3"/>
+        <circle cx="12" cy="12" r="5.7"/>
+        <circle cx="12" cy="12" r="1.5" fill="currentColor" stroke="none"/>
+        <path d="M12 6.3V3.6M17.7 12h2.7M12 17.7v2.7M6.3 12H3.6"/>
+      </svg>
+      <b>AgentVault</b><span>Runtime permission firewall</span>
+    </div>
+    <h1>The agent asks.<br>You decide.<br><em>The record proves it.</em></h1>
+    <div class="numbers">
+      <span><b>103/103</b> <i>attacks blocked</i></span>
+      <span><b>8/8</b> <i>everyday operations allowed</i></span>
+      <span><b>&lt;1 ms</b> <i>p99 policy eval (CI gate)</i></span>
+    </div>
+  </div>
+  <div class="stamp">DENIED</div>
+  <div class="rule"></div>
+  <div class="cmd"><span class="d">$</span><span class="c">curl -fsSL https://raw.githubusercontent.com/aashish254/agentvault/main/scripts/install.sh | sh</span></div>
+  <div class="foot">macOS + Linux · one static binary</div>
+</div>
+</body>
+</html>
