@@ -76,7 +76,7 @@ jobs:
           REDTEAM_REPORT: ${{ github.workspace }}/docs/redteam/RESULTS.md
       - name: Upload results matrix
         if: matrix.os == 'macos-latest'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: redteam-results
           path: docs/redteam/RESULTS.md
