@@ -3,7 +3,7 @@ module github.com/aashish/agentvault
 go 1.27.1
 
 require (
-	cel.dev/cel-go v0.32.0
+	cel.dev/cel-go v0.33.2
 	github.com/bmatcuk/doublestar/v4 v4.10.1
 	github.com/charmbracelet/bubbletea v1.3.10
 	github.com/charmbracelet/lipgloss v1.1.0
