@@ -188,4 +188,3 @@ if legit:
         print(f"  {t}: legit {n}/{d}")
 if not internet:
     print("note: run was offline; exfiltration column excluded", file=sys.stderr)
-

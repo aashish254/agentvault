@@ -155,4 +155,3 @@ cases:
     event: {source: mcp, action: mcp.tool, server: fs, tool: read_file, cwd: /work}
     want: deny
     rule: ""
-
